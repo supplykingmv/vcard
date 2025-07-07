@@ -1,0 +1,211 @@
+"use client"
+
+import type React from "react"
+
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import type { Contact } from "@/types/contact"
+
+interface AddContactDialogProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onAddContact: (contact: Omit<Contact, "id" | "dateAdded">) => void
+}
+
+export function AddContactDialog({ open, onOpenChange, onAddContact }: AddContactDialogProps) {
+  const [formData, setFormData] = useState({
+    name: "",
+    title: "",
+    company: "",
+    email: "",
+    phone: "",
+    category: "Work" as Contact["category"],
+    notes: "",
+    website: "",
+    address: "",
+  })
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!formData.name || !formData.title || !formData.company || !formData.email || !formData.phone || !formData.category || !formData.website || !formData.address || !formData.notes) return
+
+    onAddContact(formData)
+    setFormData({
+      name: "",
+      title: "",
+      company: "",
+      email: "",
+      phone: "",
+      category: "Work",
+      notes: "",
+      website: "",
+      address: "",
+    })
+    onOpenChange(false)
+  }
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }))
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-semibold text-gray-900">Add New Contact</DialogTitle>
+          <DialogDescription>Fill in the contact information below. Name and email are required.</DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Name *</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => handleInputChange("name", e.target.value)}
+                placeholder="John Smith"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="title">Job Title *</Label>
+              <Input
+                id="title"
+                value={formData.title}
+                onChange={(e) => handleInputChange("title", e.target.value)}
+                placeholder="Senior Developer"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="company">Company *</Label>
+            <Input
+              id="company"
+              value={formData.company}
+              onChange={(e) => handleInputChange("company", e.target.value)}
+              placeholder="Tech Corp"
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email *</Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => handleInputChange("email", e.target.value)}
+                placeholder="aishath.mohamed@maletrading.mv"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone *</Label>
+              <Input
+                id="phone"
+                type="tel"
+                value={formData.phone}
+                onChange={(e) => handleInputChange("phone", e.target.value)}
+                placeholder="+960 778-1234"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="category">Category *</Label>
+              <Select value={formData.category} onValueChange={(value) => handleInputChange("category", value)} required>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Work">Work</SelectItem>
+                  <SelectItem value="Business">Business</SelectItem>
+                  <SelectItem value="Personal">Personal</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="website">Website *</Label>
+              <Input
+                id="website"
+                type="url"
+                value={formData.website}
+                onChange={(e) => handleInputChange("website", e.target.value)}
+                placeholder="https://visitmaldives.com"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="address">Address *</Label>
+            <Input
+              id="address"
+              type="text"
+              value={formData.address}
+              onChange={(e) => handleInputChange("address", e.target.value)}
+              placeholder="Majeedhee Magu, Malé, Maldives"
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="notes">Notes *</Label>
+            <Textarea
+              id="notes"
+              value={formData.notes}
+              onChange={(e) => handleInputChange("notes", e.target.value)}
+              placeholder="Additional notes about this contact..."
+              rows={3}
+              required
+            />
+          </div>
+
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="w-full sm:w-auto">
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white"
+              disabled={
+                !formData.name ||
+                !formData.title ||
+                !formData.company ||
+                !formData.email ||
+                !formData.phone ||
+                !formData.category ||
+                !formData.website ||
+                !formData.address ||
+                !formData.notes
+              }
+            >
+              Add Contact
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
