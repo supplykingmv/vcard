@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { useAuth } from "@/contexts/auth-context"
-import { addContact, subscribeToNotifications } from "@/lib/firebase"
+import { addContact, updateContact, getContacts, subscribeToNotifications } from "@/lib/firebase"
 import { QRCodeCanvas } from "qrcode.react"
 import { ContactCard } from "@/components/contact-card"
 import { FaWhatsapp, FaTelegramPlane, FaViber, FaFacebookF } from "react-icons/fa"
@@ -132,25 +132,54 @@ export function UserProfileDialog({ open, onOpenChange }: UserProfileDialogProps
       updateData.password = formData.newPassword
     }
 
+    // Check if any profile fields (not password) have changed
+    const profileFieldsChanged =
+      user.name !== formData.name ||
+      user.email !== formData.email ||
+      user.phone !== formData.phone ||
+      user.website !== formData.website ||
+      user.address !== formData.address ||
+      user.company !== formData.company ||
+      user.title !== formData.title
+
     const success = await updateUser(user.id, updateData)
     if (success) {
-      // Create business card for user if not exists
-      try {
-        // Check if a business card already exists for this user (by name/email/phone/website/address)
-        // For simplicity, always create/update the card (idempotent for this use case)
-        await addContact(user.id, {
-          name: formData.name,
-          title: user.title || "",
-          company: user.company || "",
-          email: formData.email,
-          phone: formData.phone,
-          category: "Personal",
-          website: formData.website,
-          address: formData.address,
-          notes: "",
-        })
-      } catch (e) {
-        // Optionally handle error
+      if (profileFieldsChanged) {
+        try {
+          // Fetch all contacts for the user
+          const contacts = await getContacts({ id: user.id, role: user.role })
+          // Find existing business card (My Card) by email and phone
+          const existingCard = contacts.find(
+            c => c.email === formData.email && c.phone === formData.phone && c.category === "My Card"
+          )
+          if (existingCard) {
+            await updateContact(existingCard.id, {
+              name: formData.name,
+              title: formData.title,
+              company: formData.company,
+              email: formData.email,
+              phone: formData.phone,
+              category: "My Card",
+              website: formData.website,
+              address: formData.address,
+              notes: "",
+            })
+          } else {
+            await addContact(user.id, {
+              name: formData.name,
+              title: formData.title,
+              company: formData.company,
+              email: formData.email,
+              phone: formData.phone,
+              category: "My Card",
+              website: formData.website,
+              address: formData.address,
+              notes: "",
+            })
+          }
+        } catch (e) {
+          // Optionally handle error
+        }
       }
       setIsEditing(false)
       setFormData({
@@ -427,83 +456,6 @@ export function UserProfileDialog({ open, onOpenChange }: UserProfileDialogProps
                       onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                       placeholder="Enter your address"
                     />
-                  </div>
-
-                  {/* Password Change Section */}
-                  <div className="pt-4 border-t border-gray-200">
-                    <h4 className="text-md font-medium text-gray-900 mb-4">Change Password (Optional)</h4>
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="currentPassword">Current Password</Label>
-                        <div className="relative">
-                          <Input
-                            id="currentPassword"
-                            type={showCurrentPassword ? "text" : "password"}
-                            value={formData.currentPassword}
-                            onChange={(e) => setFormData({ ...formData, currentPassword: e.target.value })}
-                            placeholder="Enter current password"
-                            className={errors.currentPassword ? "border-red-500 pr-10" : "pr-10"}
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                            onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                          >
-                            {showCurrentPassword ? (
-                              <EyeOff className="h-4 w-4 text-gray-400" />
-                            ) : (
-                              <Eye className="h-4 w-4 text-gray-400" />
-                            )}
-                          </Button>
-                        </div>
-                        {errors.currentPassword && <p className="text-sm text-red-600">{errors.currentPassword}</p>}
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="newPassword">New Password</Label>
-                          <div className="relative">
-                            <Input
-                              id="newPassword"
-                              type={showNewPassword ? "text" : "password"}
-                              value={formData.newPassword}
-                              onChange={(e) => setFormData({ ...formData, newPassword: e.target.value })}
-                              placeholder="Enter new password"
-                              className={errors.newPassword ? "border-red-500 pr-10" : "pr-10"}
-                            />
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                              onClick={() => setShowNewPassword(!showNewPassword)}
-                            >
-                              {showNewPassword ? (
-                                <EyeOff className="h-4 w-4 text-gray-400" />
-                              ) : (
-                                <Eye className="h-4 w-4 text-gray-400" />
-                              )}
-                            </Button>
-                          </div>
-                          {errors.newPassword && <p className="text-sm text-red-600">{errors.newPassword}</p>}
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                          <Input
-                            id="confirmPassword"
-                            type="password"
-                            value={formData.confirmPassword}
-                            onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                            placeholder="Confirm new password"
-                            className={errors.confirmPassword ? "border-red-500" : ""}
-                          />
-                          {errors.confirmPassword && <p className="text-sm text-red-600">{errors.confirmPassword}</p>}
-                        </div>
-                      </div>
-                    </div>
                   </div>
 
                   {/* Action Buttons */}

@@ -20,6 +20,7 @@ import { subscribeToNotifications, getNotifications } from "@/lib/firebase"
 import { useEffect } from "react"
 import { useToast } from "@/components/ui/use-toast"
 import { NotificationDialog } from "@/components/notification-dialog"
+import { ChangePasswordDialog } from "./change-password-dialog"
 
 export function HeaderNav() {
   const { user, logout, updateUser } = useAuth()
@@ -33,6 +34,7 @@ export function HeaderNav() {
   const [cleared, setCleared] = useState(false)
   const { toast } = useToast()
   const [showNotificationDialog, setShowNotificationDialog] = useState(false)
+  const [showChangePassword, setShowChangePassword] = useState(false)
 
   useEffect(() => {
     // Fetch initial notifications
@@ -166,6 +168,10 @@ export function HeaderNav() {
               </DropdownMenuItem>
             )}
             <DropdownMenuSeparator />
+            <DropdownMenuItem className="cursor-pointer" onClick={() => setShowChangePassword(true)}>
+              <Settings className="mr-2 h-4 w-4" />
+              <span>Change Password</span>
+            </DropdownMenuItem>
             <DropdownMenuItem className="cursor-pointer text-red-600" onClick={handleLogout}>
               <LogOut className="mr-2 h-4 w-4" />
               <span>Sign out</span>
@@ -177,6 +183,7 @@ export function HeaderNav() {
       <UserManagementDialog open={showUserManagement} onOpenChange={setShowUserManagement} />
       <UserProfileDialog open={showUserProfile} onOpenChange={setShowUserProfile} />
       <NotificationDialog open={showNotificationDialog} onOpenChange={setShowNotificationDialog} user={user} />
+      <ChangePasswordDialog open={showChangePassword} onOpenChange={setShowChangePassword} />
 
       {/* Custom Sign Out Dialog */}
       <AlertDialog open={showSignOutDialog} onOpenChange={setShowSignOutDialog}>
