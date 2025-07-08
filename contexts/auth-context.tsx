@@ -38,6 +38,17 @@ interface AuthContextType extends AuthState {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+// Default super admin user
+const defaultSuperAdmin: User = {
+  id: "superadmin-1",
+  email: "rixaski@gmail.com",
+  password: "welcome123",
+  role: "superadmin",
+  name: "Super Admin User",
+  dateAdded: new Date(),
+  isActive: true,
+}
+
 // Default admin user
 const defaultAdmin: User = {
   id: "admin-1",
@@ -73,10 +84,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     id: uid,
     email: data.email,
     password: "",
-    role: data.email === "rixaski@gmail.com" ? "admin" : (data.role === "admin" ? "admin" : "user"),
+    role: data.email === "rixaski@gmail.com" ? "admin" : (data.role as User["role"] ?? "viewer"),
     name: data.name || data.email,
     dateAdded: data.dateAdded ? new Date(data.dateAdded) : new Date(),
     isActive: data.isActive !== false,
+    clearedNotifications: data.clearedNotifications || [],
   })
 
   // Listen for Firebase Auth state changes
@@ -94,10 +106,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             id: firebaseUser.uid,
             email: firebaseUser.email || "",
             password: "",
-            role: (firebaseUser.email === "rixaski@gmail.com") ? "admin" : (userDoc?.data()?.role === "admin" ? "admin" : "user"),
+            role: (firebaseUser.email === "rixaski@gmail.com") ? "admin" : (userDoc?.data()?.role === "admin" ? "admin" : "viewer"),
             name: firebaseUser.displayName || firebaseUser.email || "User",
             dateAdded: new Date(firebaseUser.metadata.creationTime || Date.now()),
             isActive: true,
+            clearedNotifications: [],
           }
           await setDoc(doc(db, "users", firebaseUser.uid), {
             email: user.email,
@@ -105,6 +118,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             name: user.name,
             dateAdded: user.dateAdded.toISOString(),
             isActive: true,
+            clearedNotifications: [],
           })
         }
         setAuthState({ user, isAuthenticated: true })
@@ -117,7 +131,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Register new user (admin only)
   const addUser = async (userData: Omit<User, "id" | "dateAdded">): Promise<boolean> => {
-    if (authState.user?.role !== "admin") return false
+    if (authState.user?.role !== "superadmin" && authState.user?.role !== "admin") return false
     try {
       const cred = await createUserWithEmailAndPassword(auth, userData.email, userData.password)
       await updateProfile(cred.user, { displayName: userData.name })
@@ -127,6 +141,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         name: userData.name,
         dateAdded: new Date().toISOString(),
         isActive: userData.isActive,
+        clearedNotifications: [],
       })
       return true
     } catch (e) {
@@ -136,14 +151,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Get all users (admin only)
   const getUsers = async (): Promise<User[]> => {
-    if (authState.user?.role !== "admin") return []
+    if (authState.user?.role !== "superadmin" && authState.user?.role !== "admin") return []
     const snap = await getDocs(collection(db, "users"))
     return snap.docs.map(docSnap => mapFirestoreUser(docSnap.id, docSnap.data()))
   }
 
   // Update user (admin or self)
   const updateUser = async (userId: string, userData: Partial<User>): Promise<boolean> => {
-    if (authState.user?.role !== "admin" && authState.user?.id !== userId) return false
+    if (
+      authState.user?.role !== "superadmin" &&
+      authState.user?.role !== "admin" &&
+      authState.user?.id !== userId
+    ) return false
     try {
       const userRef = doc(db, "users", userId)
       await updateDoc(userRef, userData)
@@ -165,7 +184,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Delete user (admin only, cannot delete self)
   const deleteUser = async (userId: string): Promise<boolean> => {
-    if (authState.user?.role !== "admin" || userId === authState.user.id) return false
+    if ((authState.user?.role !== "superadmin" && authState.user?.role !== "admin") || userId === authState.user.id) return false
     try {
       await deleteDoc(doc(db, "users", userId))
       // Optionally, also delete from Auth (requires admin privileges on backend)

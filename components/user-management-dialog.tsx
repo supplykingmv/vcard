@@ -29,7 +29,7 @@ export function UserManagementDialog({ open, onOpenChange }: UserManagementDialo
     name: "",
     email: "",
     password: "",
-    role: "user" as "admin" | "user",
+    role: "viewer" as "superadmin" | "admin" | "editor" | "viewer",
     isActive: true,
   })
 
@@ -47,7 +47,7 @@ export function UserManagementDialog({ open, onOpenChange }: UserManagementDialo
       name: "",
       email: "",
       password: "",
-      role: "user",
+      role: "viewer",
       isActive: true,
     })
     setShowAddForm(false)
@@ -88,7 +88,7 @@ export function UserManagementDialog({ open, onOpenChange }: UserManagementDialo
       name: user.name,
       email: user.email,
       password: "",
-      role: user.role,
+      role: user.role as "superadmin" | "admin" | "editor" | "viewer",
       isActive: user.isActive,
     })
     setShowAddForm(true)
@@ -196,14 +196,16 @@ export function UserManagementDialog({ open, onOpenChange }: UserManagementDialo
                       <Label htmlFor="role">Role</Label>
                       <Select
                         value={formData.role}
-                        onValueChange={(value) => setFormData({ ...formData, role: value as "admin" | "user" })}
+                        onValueChange={(value) => setFormData({ ...formData, role: value as "superadmin" | "admin" | "editor" | "viewer" })}
                       >
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="user">User</SelectItem>
+                          <SelectItem value="superadmin">Super Admin</SelectItem>
                           <SelectItem value="admin">Admin</SelectItem>
+                          <SelectItem value="editor">Editor</SelectItem>
+                          <SelectItem value="viewer">Viewer</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>

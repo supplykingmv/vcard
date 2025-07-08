@@ -28,10 +28,12 @@ export function AddContactDialog({ open, onOpenChange, onAddContact }: AddContac
   const [formData, setFormData] = useState({
     name: "",
     title: "",
-    company: "",
+    organization: "",
     email: "",
     phone: "",
     category: "Work" as Contact["category"],
+    tripEventForum: "",
+    country: "",
     notes: "",
     website: "",
     address: "",
@@ -39,16 +41,21 @@ export function AddContactDialog({ open, onOpenChange, onAddContact }: AddContac
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!formData.name || !formData.title || !formData.company || !formData.email || !formData.phone || !formData.category || !formData.website || !formData.address || !formData.notes) return
+    if (!formData.name || !formData.title || !formData.organization || !formData.email || !formData.phone || !formData.category || !formData.website || !formData.address || !formData.notes || !formData.tripEventForum || !formData.country) return
 
-    onAddContact(formData)
+    onAddContact({
+      ...formData,
+      company: formData.organization,
+    })
     setFormData({
       name: "",
       title: "",
-      company: "",
+      organization: "",
       email: "",
       phone: "",
       category: "Work",
+      tripEventForum: "",
+      country: "",
       notes: "",
       website: "",
       address: "",
@@ -76,7 +83,7 @@ export function AddContactDialog({ open, onOpenChange, onAddContact }: AddContac
                 id="name"
                 value={formData.name}
                 onChange={(e) => handleInputChange("name", e.target.value)}
-                placeholder="John Smith"
+                placeholder="Ahmed Mohamed"
                 required
               />
             </div>
@@ -94,14 +101,37 @@ export function AddContactDialog({ open, onOpenChange, onAddContact }: AddContac
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="company">Company *</Label>
+            <Label htmlFor="organization">Organization *</Label>
             <Input
-              id="company"
-              value={formData.company}
-              onChange={(e) => handleInputChange("company", e.target.value)}
+              id="organization"
+              value={formData.organization}
+              onChange={(e) => handleInputChange("organization", e.target.value)}
               placeholder="Tech Corp"
               required
             />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="tripEventForum">Trip | Event | Forum *</Label>
+              <Input
+                id="tripEventForum"
+                value={formData.tripEventForum}
+                onChange={(e) => handleInputChange("tripEventForum", e.target.value)}
+                placeholder="e.g. Maldives Business Forum 2024"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="country">Country *</Label>
+              <Input
+                id="country"
+                value={formData.country}
+                onChange={(e) => handleInputChange("country", e.target.value)}
+                placeholder="Maldives"
+                required
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -192,7 +222,7 @@ export function AddContactDialog({ open, onOpenChange, onAddContact }: AddContac
               disabled={
                 !formData.name ||
                 !formData.title ||
-                !formData.company ||
+                !formData.organization ||
                 !formData.email ||
                 !formData.phone ||
                 !formData.category ||

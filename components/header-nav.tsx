@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { LogOut, Settings, Users, User } from "lucide-react"
+import { LogOut, Settings, Users, User, Bell } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -16,12 +16,43 @@ import { UserManagementDialog } from "@/components/user-management-dialog"
 import { useAuth } from "@/contexts/auth-context"
 import { UserProfileDialog } from "@/components/user-profile-dialog"
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog"
+import { subscribeToNotifications, getNotifications } from "@/lib/firebase"
+import { useEffect } from "react"
+import { useToast } from "@/components/ui/use-toast"
+import { NotificationDialog } from "@/components/notification-dialog"
 
 export function HeaderNav() {
-  const { user, logout } = useAuth()
+  const { user, logout, updateUser } = useAuth()
   const [showUserManagement, setShowUserManagement] = useState(false)
   const [showUserProfile, setShowUserProfile] = useState(false)
   const [showSignOutDialog, setShowSignOutDialog] = useState(false)
+  const [showNotifDropdown, setShowNotifDropdown] = useState(false)
+  const [notifications, setNotifications] = useState<any[]>([])
+  const [unread, setUnread] = useState(false)
+  const [readIds, setReadIds] = useState<string[]>([])
+  const [cleared, setCleared] = useState(false)
+  const { toast } = useToast()
+  const [showNotificationDialog, setShowNotificationDialog] = useState(false)
+
+  useEffect(() => {
+    // Fetch initial notifications
+    getNotifications().then(setNotifications)
+    // Subscribe to notifications
+    const unsub = subscribeToNotifications((notifs) => {
+      // If notifications are cleared, don't show badge or highlight
+      if (cleared) return setNotifications(notifs)
+      // Show toast and badge for new notification
+      if (notifs.length > 0 && notifications.length > 0 && notifs[0].id !== notifications[0].id) {
+        toast({
+          title: "New Notification",
+          description: notifs[0].message,
+        })
+        setUnread(true)
+      }
+      setNotifications(notifs)
+    })
+    return () => unsub()
+  }, [cleared])
 
   if (!user) return null
 
@@ -34,9 +65,52 @@ export function HeaderNav() {
     setShowSignOutDialog(false)
   }
 
+  // Filter notifications to exclude those cleared by the user and those with excludeUserIds containing the current user
+  const visibleNotifications = notifications.filter(n =>
+    !user?.clearedNotifications?.includes(n.id) &&
+    !(n.excludeUserIds && Array.isArray(n.excludeUserIds) && n.excludeUserIds.includes(user?.id))
+  )
+
   return (
     <>
       <div className="flex items-center space-x-4">
+        {/* Notification Bell */}
+        <div className="relative">
+          <Button variant="ghost" className="h-10 w-10 rounded-full" onClick={() => { setShowNotifDropdown((v) => !v); setUnread(false); setReadIds(visibleNotifications.map(n => n.id)); }} aria-label="Notifications">
+            {/* Green circle background */}
+            <span className="absolute inset-0 rounded-full" style={{ background: 'rgba(16, 185, 129, 0.2)' }} />
+            <Bell className="h-6 w-6 text-gray-700 relative z-10" />
+            {(unread || notifications.some(n => !readIds.includes(n.id))) && <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full z-20" />}
+          </Button>
+          {showNotifDropdown && (
+            <div className="absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto">
+              <div className="flex items-center justify-between p-3 border-b font-semibold text-gray-800">
+                <span>Notifications</span>
+                <div className="flex gap-2">
+                  <button className="text-xs text-blue-600 hover:underline" onClick={() => { setReadIds(visibleNotifications.map(n => n.id)); setUnread(false); }}>Mark all as read</button>
+                  <button className="text-xs text-red-600 hover:underline" onClick={async () => {
+                    if (user && updateUser) {
+                      await updateUser(user.id, { clearedNotifications: [...new Set([...(user.clearedNotifications || []), ...notifications.map(n => n.id)])] })
+                    }
+                    setNotifications([]); setReadIds([]); setCleared(true);
+                  }}>Clear all</button>
+                </div>
+              </div>
+              {visibleNotifications.length === 0 ? (
+                <div className="p-4 text-gray-500 text-center">No notifications</div>
+              ) : (
+                <ul className="divide-y divide-gray-100">
+                  {visibleNotifications.slice(0, 10).map((notif) => (
+                    <li key={notif.id} className={`p-3 hover:bg-gray-50 ${!readIds.includes(notif.id) ? 'bg-green-50 font-semibold' : ''}` }>
+                      <div className="text-sm text-gray-900">{notif.message}</div>
+                      <div className="text-xs text-gray-500 mt-1">{notif.senderName} • {notif.createdAt ? new Date(notif.createdAt).toLocaleString() : ""}</div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </div>
         <div className="text-right hidden sm:block">
           <p className="text-sm font-medium text-gray-900">{user.name}</p>
           <div className="flex items-center justify-end space-x-2">
@@ -79,10 +153,12 @@ export function HeaderNav() {
               <User className="mr-2 h-4 w-4" />
               <span>Profile</span>
             </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer">
-              <Settings className="mr-2 h-4 w-4" />
-              <span>Settings</span>
-            </DropdownMenuItem>
+            {(user.role === "admin" || user.role === "superadmin") && (
+              <DropdownMenuItem className="cursor-pointer" onClick={() => setShowNotificationDialog(true)}>
+                <Bell className="mr-2 h-4 w-4" />
+                <span>Notification</span>
+              </DropdownMenuItem>
+            )}
             {user.role === "admin" && (
               <DropdownMenuItem className="cursor-pointer" onClick={() => setShowUserManagement(true)}>
                 <Users className="mr-2 h-4 w-4" />
@@ -100,6 +176,7 @@ export function HeaderNav() {
 
       <UserManagementDialog open={showUserManagement} onOpenChange={setShowUserManagement} />
       <UserProfileDialog open={showUserProfile} onOpenChange={setShowUserProfile} />
+      <NotificationDialog open={showNotificationDialog} onOpenChange={setShowNotificationDialog} user={user} />
 
       {/* Custom Sign Out Dialog */}
       <AlertDialog open={showSignOutDialog} onOpenChange={setShowSignOutDialog}>

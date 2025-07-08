@@ -27,9 +27,10 @@ interface ContactCardProps {
   onDelete: (id: string) => void
   onShare: (contact: Contact) => void
   variant?: "default" | "large"
+  showActions?: boolean
 }
 
-export function ContactCard({ contact, onEdit, onDelete, onShare, variant = "default" }: ContactCardProps) {
+export function ContactCard({ contact, onEdit, onDelete, onShare, variant = "default", showActions = true }: ContactCardProps) {
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
@@ -76,52 +77,42 @@ export function ContactCard({ contact, onEdit, onDelete, onShare, variant = "def
           <div className="flex items-start justify-between mb-2">
             <div className="flex items-center flex-1 min-w-0">
               <div className="min-w-0 flex-1">
-                <h3 className="font-bold text-gray-900 text-base leading-tight">{contact.name}</h3>
-                <p className="text-xs text-gray-600 leading-tight">{contact.title}</p>
-                <div className="flex items-center space-x-1 mt-0.5">
+                <h3 className="font-bold text-gray-900 text-base leading-tight truncate" title={contact.name}>{contact.name}</h3>
+                <p className="text-xs text-gray-600 leading-tight truncate" title={contact.title}>{contact.title}</p>
+                <div className="flex items-center space-x-1 mt-0.5 min-w-0">
                   <Building className="h-2.5 w-2.5 text-gray-400 flex-shrink-0" />
-                  <span className="text-xs font-medium text-gray-700">{contact.company}</span>
+                  <span className="text-xs font-medium text-gray-700 truncate" title={contact.company}>{contact.company}</span>
                 </div>
               </div>
             </div>
-
-            {/* QR Code */}
-            <div className="flex-shrink-0 ml-2">
-              <div className="p-1.5 bg-white rounded shadow-sm border">
-                <QRCodeCanvas
-                  value={`BEGIN:VCARD\nVERSION:3.0\nFN:${contact.name}\nORG:${contact.company}\nTITLE:${contact.title}\nTEL:${contact.phone}\nEMAIL:${contact.email}\nADR:;;${contact.address || ""};;;;\nURL:${contact.website || ""}\nNOTE:${contact.notes || ""}\nEND:VCARD`}
-                  size={48}
-                  level="M"
-                  includeMargin={false}
-                />
-              </div>
-            </div>
+            {/* QR Code removed from here */}
           </div>
 
           {/* Contact Information */}
           <div className="space-y-1.5 flex-1">
-            <div className="flex items-center space-x-1.5">
+            <div className="flex items-center space-x-1.5 min-w-0">
               <Mail className="h-3 w-3 text-gray-400 flex-shrink-0" />
               <a
                 href={`mailto:${contact.email}`}
-                className="text-xs text-green-600 hover:underline break-all leading-tight"
+                className="text-xs text-green-600 hover:underline break-all leading-tight truncate min-w-0"
                 style={{ wordBreak: "break-all" }}
+                title={contact.email}
               >
                 {contact.email}
               </a>
             </div>
 
-            <div className="flex items-center space-x-1.5">
+            <div className="flex items-center space-x-1.5 min-w-0">
               <Phone className="h-3 w-3 text-gray-400 flex-shrink-0" />
-              <a href={`tel:${contact.phone}`} className="text-xs text-green-600 hover:underline">
+              <a href={`tel:${contact.phone}`} className="text-xs text-green-600 hover:underline truncate min-w-0" title={contact.phone}>
                 {contact.phone}
               </a>
             </div>
 
             {contact.address && (
-              <div className="flex items-start space-x-1.5">
+              <div className="flex items-start space-x-1.5 min-w-0">
                 <div className="h-3 w-3 text-gray-400 flex-shrink-0 mt-0.5 text-xs">📍</div>
-                <span className="text-xs text-gray-600 leading-tight">{contact.address}</span>
+                <span className="text-xs text-gray-600 leading-tight truncate" title={contact.address}>{contact.address}</span>
               </div>
             )}
 
@@ -135,51 +126,53 @@ export function ContactCard({ contact, onEdit, onDelete, onShare, variant = "def
 
           {/* Bottom section with category and date */}
           <div
-            className="flex items-center justify-between pt-1.5 border-t border-gray-100 mt-auto"
+            className="flex items-center justify-between pt-1.5 border-t border-gray-100 mt-auto min-h-0 relative"
             data-bottom-section
           >
-            <div className="flex items-center space-x-2">
-              <Badge
-                variant="outline"
-                className={`${getCategoryColor(contact.category)} text-xs px-1 py-0`}
-                data-category-badge
+            <Badge
+              variant="outline"
+              className={`${getCategoryColor(contact.category)} text-xs px-1 py-0`}
+              data-category-badge
+            >
+              {contact.category}
+            </Badge>
+            <span className="text-xs text-gray-400 flex-shrink-0 ml-2" data-date-added>
+              {contact.dateAdded ? new Date(contact.dateAdded).toLocaleDateString() : ""}
+            </span>
+            {showActions && (
+              <div
+                className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 bg-white/90 rounded-full p-2 shadow-lg"
+                style={{ pointerEvents: 'auto' }}
               >
-                {contact.category}
-              </Badge>
-              {/* Action Icons - appear on hover */}
-              <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                 <Button
                   size="icon"
                   variant="ghost"
                   onClick={() => setShowEditDialog(true)}
-                  className="h-8 w-8 p-0 hover:bg-blue-100"
+                  className="h-9 w-9 p-0 hover:bg-blue-100"
                   aria-label="Edit"
                 >
-                  <Edit className="h-4 w-4" />
+                  <Edit className="h-[1.24rem] w-[1.24rem]" />
                 </Button>
                 <Button
                   size="icon"
                   variant="ghost"
                   onClick={() => onShare(contact)}
-                  className="h-8 w-8 p-0 hover:bg-green-100"
+                  className="h-9 w-9 p-0 hover:bg-green-100"
                   aria-label="Share"
                 >
-                  <QrCode className="h-4 w-4" />
+                  <QrCode className="h-[1.24rem] w-[1.24rem]" />
                 </Button>
                 <Button
                   size="icon"
                   variant="ghost"
                   onClick={() => setShowDeleteDialog(true)}
-                  className="h-8 w-8 p-0 hover:bg-red-100 text-red-600"
+                  className="h-9 w-9 p-0 hover:bg-red-100 text-red-600"
                   aria-label="Delete"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="h-[1.24rem] w-[1.24rem]" />
                 </Button>
               </div>
-            </div>
-            <span className="text-xs text-gray-400" data-date-added>
-              {contact.dateAdded ? new Date(contact.dateAdded).toLocaleDateString() : ""}
-            </span>
+            )}
           </div>
         </CardContent>
       </Card>

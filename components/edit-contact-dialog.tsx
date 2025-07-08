@@ -36,6 +36,7 @@ export function EditContactDialog({ open, onOpenChange, contact, onEditContact }
     notes: "",
     website: "",
     address: "",
+    dateAdded: undefined as Date | string | undefined,
   })
 
   useEffect(() => {
@@ -50,6 +51,7 @@ export function EditContactDialog({ open, onOpenChange, contact, onEditContact }
         notes: contact.notes || "",
         website: contact.website || "",
         address: contact.address || "",
+        dateAdded: contact.dateAdded,
       })
     }
   }, [contact])
@@ -61,6 +63,7 @@ export function EditContactDialog({ open, onOpenChange, contact, onEditContact }
     onEditContact({
       ...contact,
       ...formData,
+      dateAdded: new Date(),
     })
   }
 

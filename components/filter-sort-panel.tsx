@@ -51,7 +51,10 @@ export function FilterSortPanel({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="name">Name (A-Z)</SelectItem>
-                <SelectItem value="company">Company (A-Z)</SelectItem>
+                <SelectItem value="company">Organization (A-Z)</SelectItem>
+                <SelectItem value="title">Job Title (A-Z)</SelectItem>
+                <SelectItem value="country">Country (A-Z)</SelectItem>
+                <SelectItem value="tripEventForum">Trip | Event | Forum (A-Z)</SelectItem>
                 <SelectItem value="dateAdded">Date Added (Newest)</SelectItem>
               </SelectContent>
             </Select>
@@ -60,17 +63,21 @@ export function FilterSortPanel({
           <div className="space-y-2">
             <Label className="flex items-center gap-2 text-sm font-medium">
               <Filter className="h-4 w-4 text-green-600" />
-              Filter by Category
+              Filter by
             </Label>
             <Select value={filterCategory} onValueChange={setFilterCategory}>
               <SelectTrigger className="bg-white/50">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                <SelectItem value="Work">Work</SelectItem>
-                <SelectItem value="Business">Business</SelectItem>
-                <SelectItem value="Personal">Personal</SelectItem>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="Work">Category: Work</SelectItem>
+                <SelectItem value="Business">Category: Business</SelectItem>
+                <SelectItem value="Personal">Category: Personal</SelectItem>
+                <SelectItem value="organization">Organization</SelectItem>
+                <SelectItem value="title">Job Title</SelectItem>
+                <SelectItem value="country">Country</SelectItem>
+                <SelectItem value="tripEventForum">Trip | Event | Forum</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -86,7 +93,11 @@ export function FilterSortPanel({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">No Grouping</SelectItem>
-                <SelectItem value="category">Group by Category</SelectItem>
+                <SelectItem value="category">Category</SelectItem>
+                <SelectItem value="organization">Organization</SelectItem>
+                <SelectItem value="title">Job Title</SelectItem>
+                <SelectItem value="country">Country</SelectItem>
+                <SelectItem value="tripEventForum">Trip | Event | Forum</SelectItem>
               </SelectContent>
             </Select>
           </div>

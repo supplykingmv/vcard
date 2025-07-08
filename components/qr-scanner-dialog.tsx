@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { Upload } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -22,7 +22,27 @@ const QrReader = dynamic(() => import("react-qr-reader").then(mod => mod.QrReade
 export function QRScannerDialog({ open, onOpenChange, onContactScanned }: QRScannerDialogProps) {
   const [scanMode, setScanMode] = useState<"camera" | "upload" | "manual">("manual")
   const [manualData, setManualData] = useState("")
+  const [showCamera, setShowCamera] = useState(false)
   const [cameraError, setCameraError] = useState<string | null>(null)
+  const [devices, setDevices] = useState<MediaDeviceInfo[]>([])
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string | undefined>(undefined)
+
+  useEffect(() => {
+    if (scanMode !== "camera" || !open) {
+      setShowCamera(false)
+      setCameraError(null)
+      setSelectedDeviceId(undefined)
+    }
+  }, [scanMode, open])
+
+  // Fetch available video input devices when camera is requested
+  useEffect(() => {
+    if (showCamera) {
+      navigator.mediaDevices?.enumerateDevices?.().then((allDevices) => {
+        setDevices(allDevices.filter((d) => d.kind === "videoinput"))
+      })
+    }
+  }, [showCamera])
 
   const parseVCard = (vCardData: string) => {
     const lines = vCardData.split("\n")
@@ -217,22 +237,51 @@ export function QRScannerDialog({ open, onOpenChange, onContactScanned }: QRScan
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label>Scan QR Code</Label>
-                <div style={{ width: "100%" }}>
+                <div>
+                  {devices.length > 1 && (
+                    <select
+                      value={selectedDeviceId || devices[0]?.deviceId}
+                      onChange={(e) => setSelectedDeviceId(e.target.value)}
+                      style={{ marginBottom: 8 }}
+                    >
+                      {devices.map((device) => (
+                        <option key={device.deviceId} value={device.deviceId}>
+                          {device.label || `Camera ${device.deviceId}`}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                   <QrReader
-                    scanDelay={300}
+                    constraints={selectedDeviceId ? { deviceId: { exact: selectedDeviceId } } : { facingMode: "environment" }}
                     onResult={(result, error) => {
                       if (result?.getText) {
+                        setCameraError(null)
                         setManualData(result.getText())
                         setScanMode("manual")
+                        // Parse QR result as contact object
+                        try {
+                          const contact = JSON.parse(result.getText())
+                          onContactScanned(contact)
+                        } catch {
+                          setCameraError("Scanned QR code is not valid contact data.")
+                        }
                       }
                       if (error) {
-                        setCameraError(error?.message || "Camera error")
+                        if (error.name === "NotAllowedError") {
+                          setCameraError("Camera access denied. Please allow camera permissions.")
+                        } else if (error.name === "NotFoundError") {
+                          setCameraError("No camera device found.")
+                        } else {
+                          setCameraError(error.message || "Camera error")
+                        }
                       }
                     }}
-                    constraints={{ facingMode: "environment" }}
+                    scanDelay={300}
                   />
+                  {cameraError && (
+                    <div style={{ color: "red", marginTop: 8 }}>{cameraError}</div>
+                  )}
                 </div>
-                {cameraError && <div className="text-red-500 text-xs">{cameraError}</div>}
               </div>
             </div>
           )}

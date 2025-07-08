@@ -16,7 +16,7 @@ import { Logo } from "@/components/logo"
 import { HeaderNav } from "@/components/header-nav"
 import type { Contact } from "@/types/contact"
 import { useAuth } from "@/contexts/auth-context"
-import { addContact, updateContact, deleteContact, getContacts, subscribeToOnlineUsers } from "@/lib/firebase"
+import { addContact, updateContact, deleteContact, getContacts, subscribeToOnlineUsers, addNotification } from "@/lib/firebase"
 
 export type ViewType = "grid" | "list" | "cards" | "table"
 
@@ -34,11 +34,14 @@ export default function ContactManager() {
   const [groupBy, setGroupBy] = useState<string>("none")
   const [viewType, setViewType] = useState<ViewType>("grid")
   const [onlineUsers, setOnlineUsers] = useState<{ userId: string, lastActive: any }[]>([])
+  const [manualData, setManualData] = useState<string>("")
+  const [scanMode, setScanMode] = useState<string>("")
+  const [cameraError, setCameraError] = useState<string>("")
 
   // Load contacts from Firestore on mount and when user changes
   useEffect(() => {
     if (user) {
-      getContacts(user.id).then(setContacts)
+      getContacts({ id: user.id, role: user.role }).then(setContacts)
       // Subscribe to online users
       const unsub = subscribeToOnlineUsers(setOnlineUsers)
       return () => unsub()
@@ -83,19 +86,27 @@ export default function ContactManager() {
   const handleAddContact = async (contact: Omit<Contact, "id" | "dateAdded">) => {
     if (!user) return
     await addContact(user.id, contact)
-    setContacts(await getContacts(user.id))
+    setContacts(await getContacts({ id: user.id, role: user.role }))
+    // Send notification to all users except the user who added the contact
+    await addNotification({
+      message: `${user.name} added a new contact.`,
+      senderId: user.id,
+      senderName: user.name,
+      type: "contact_add",
+      excludeUserIds: [user.id],
+    })
   }
 
   const handleEditContact = async (updatedContact: Contact) => {
     if (!user) return
     await updateContact(updatedContact.id, updatedContact)
-    setContacts(await getContacts(user.id))
+    setContacts(await getContacts({ id: user.id, role: user.role }))
   }
 
   const handleDeleteContact = async (id: string) => {
     if (!user) return
     await deleteContact(id)
-    setContacts(await getContacts(user.id))
+    setContacts(await getContacts({ id: user.id, role: user.role }))
   }
 
   const handleShareContact = (contact: Contact) => {
@@ -146,6 +157,7 @@ export default function ContactManager() {
                     onDelete={handleDeleteContact}
                     onShare={handleShareContact}
                     variant={viewType === "cards" ? "large" : "default"}
+                    showActions={user?.role !== "viewer"}
                   />
                 ))}
               </div>
@@ -157,7 +169,7 @@ export default function ContactManager() {
   }
 
   return (
-    <div className="min-h-screen relative overflow-hidden" style={{ background: '#f8fafc' }}>
+    <div className="min-h-screen relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #e6f9f0 0%, #d1fae5 50%, #fff 100%)' }}>
       {/* White gradient overlay */}
       <div style={{
         position: 'absolute',
@@ -252,19 +264,23 @@ export default function ContactManager() {
                 <Filter className="h-4 w-4 mr-2" />
                 Filter
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowQRScanner(true)}
-                className="bg-white/50 hover:bg-white/70"
-              >
-                <Scan className="h-4 w-4 mr-2" />
-                Scan QR
-              </Button>
-              <Button onClick={() => setShowAddDialog(true)} className="bg-green-600 hover:bg-green-700 text-white">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Contact
-              </Button>
+              {user?.role !== "viewer" && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowQRScanner(true)}
+                    className="bg-white/50 hover:bg-white/70"
+                  >
+                    <Scan className="h-4 w-4 mr-2" />
+                    Scan QR
+                  </Button>
+                  <Button onClick={() => setShowAddDialog(true)} className="bg-green-600 hover:bg-green-700 text-white">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Contact
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -318,10 +334,12 @@ export default function ContactManager() {
             <p className="text-gray-500 mb-4">
               {searchTerm ? "Try adjusting your search terms" : "Get started by adding your first contact"}
             </p>
-            <Button onClick={() => setShowAddDialog(true)} className="bg-green-600 hover:bg-green-700 text-white">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Contact
-            </Button>
+            {user?.role !== "viewer" && (
+              <Button onClick={() => setShowAddDialog(true)} className="bg-green-600 hover:bg-green-700 text-white">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Contact
+              </Button>
+            )}
           </div>
         )}
       </div>
@@ -331,7 +349,11 @@ export default function ContactManager() {
 
       <QRCodeDialog open={showQRDialog} onOpenChange={setShowQRDialog} contact={selectedContact} />
 
-      <QRScannerDialog open={showQRScanner} onOpenChange={setShowQRScanner} onContactScanned={handleAddContact} />
+      <QRScannerDialog
+        open={showQRScanner}
+        onOpenChange={setShowQRScanner}
+        onContactScanned={handleAddContact}
+      />
     </div>
   )
 }

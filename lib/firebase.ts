@@ -21,24 +21,54 @@ export async function addContact(userId: string, contact: Omit<Contact, 'id' | '
 }
 
 export async function updateContact(contactId: string, contact: Partial<Contact>) {
-  return await updateDoc(doc(db, "contacts", contactId), contact);
+  // Ensure dateAdded is serialized if present and valid
+  const contactToUpdate: any = { ...contact };
+  if (
+    contactToUpdate.dateAdded instanceof Date &&
+    !isNaN(contactToUpdate.dateAdded.getTime())
+  ) {
+    contactToUpdate.dateAdded = contactToUpdate.dateAdded.toISOString();
+  } else if (
+    typeof contactToUpdate.dateAdded === "string" &&
+    !isNaN(Date.parse(contactToUpdate.dateAdded))
+  ) {
+    // Already a valid ISO string, do nothing
+  } else {
+    // Remove or ignore invalid date
+    delete contactToUpdate.dateAdded;
+  }
+  return await updateDoc(doc(db, "contacts", contactId), contactToUpdate);
 }
 
 export async function deleteContact(contactId: string) {
   return await deleteDoc(doc(db, "contacts", contactId));
 }
 
-export async function getContacts(userId: string): Promise<Contact[]> {
-  const q = query(collection(db, "contacts"), where("userId", "==", userId));
-  const snap = await getDocs(q);
-  return snap.docs.map(docSnap => {
-    const data = docSnap.data();
-    return {
-      id: docSnap.id,
-      ...data,
-      dateAdded: data.dateAdded ? new Date(data.dateAdded) : new Date(),
-    } as Contact;
-  });
+export async function getContacts(user: { id: string, role: string }): Promise<Contact[]> {
+  if (["admin", "editor", "viewer", "superadmin"].includes(user.role)) {
+    // Fetch all contacts
+    const snap = await getDocs(collection(db, "contacts"));
+    return snap.docs.map(docSnap => {
+      const data = docSnap.data();
+      return {
+        id: docSnap.id,
+        ...data,
+        dateAdded: data.dateAdded ? new Date(data.dateAdded) : new Date(),
+      } as Contact;
+    });
+  } else {
+    // Fetch only own contacts
+    const q = query(collection(db, "contacts"), where("userId", "==", user.id));
+    const snap = await getDocs(q);
+    return snap.docs.map(docSnap => {
+      const data = docSnap.data();
+      return {
+        id: docSnap.id,
+        ...data,
+        dateAdded: data.dateAdded ? new Date(data.dateAdded) : new Date(),
+      } as Contact;
+    });
+  }
 }
 
 export async function setUserOnline(userId: string) {
@@ -52,5 +82,37 @@ export async function setUserOffline(userId: string) {
 export function subscribeToOnlineUsers(callback: (users: { userId: string, lastActive: any }[]) => void) {
   return onSnapshot(query(collection(db, "presence"), where("online", "==", true)), (snap) => {
     callback(snap.docs.map(docSnap => ({ userId: docSnap.id, lastActive: docSnap.data().lastActive })))
+  })
+}
+
+// Notification helpers
+export async function addNotification(notification: { message: string, senderId: string, senderName: string, type?: string, excludeUserIds?: string[] }) {
+  const docRef = await addDoc(collection(db, "notifications"), {
+    ...notification,
+    createdAt: new Date().toISOString(),
+  })
+  return docRef.id
+}
+
+export async function getNotifications(limitCount = 20) {
+  const snap = await getDocs(collection(db, "notifications"))
+  return snap.docs
+    .map(docSnap => ({ id: docSnap.id, ...docSnap.data() }))
+    .sort((a, b) => {
+      const aDate = (a as any).createdAt ? new Date((a as any).createdAt).getTime() : 0;
+      const bDate = (b as any).createdAt ? new Date((b as any).createdAt).getTime() : 0;
+      return bDate - aDate;
+    })
+    .slice(0, limitCount)
+}
+
+export function subscribeToNotifications(callback: (notifications: any[]) => void) {
+  return onSnapshot(collection(db, "notifications"), (snap) => {
+    const notifs = snap.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }))
+    callback(notifs.sort((a, b) => {
+      const aDate = (a as any).createdAt ? new Date((a as any).createdAt).getTime() : 0;
+      const bDate = (b as any).createdAt ? new Date((b as any).createdAt).getTime() : 0;
+      return bDate - aDate;
+    }))
   })
 } 

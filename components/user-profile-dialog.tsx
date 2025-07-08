@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { useAuth } from "@/contexts/auth-context"
+import { addNotification, subscribeToNotifications } from "@/lib/firebase"
 
 interface UserProfileDialogProps {
   open: boolean
@@ -29,6 +30,9 @@ export function UserProfileDialog({ open, onOpenChange }: UserProfileDialogProps
     confirmPassword: "",
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [customNotifMsg, setCustomNotifMsg] = useState("")
+  const [notifSent, setNotifSent] = useState(false)
+  const [userNotifications, setUserNotifications] = useState<any[]>([])
 
   useEffect(() => {
     if (user) {
@@ -40,6 +44,18 @@ export function UserProfileDialog({ open, onOpenChange }: UserProfileDialogProps
         confirmPassword: "",
       })
     }
+  }, [user])
+
+  useEffect(() => {
+    if (!user) return
+    const unsub = subscribeToNotifications((notifs) => {
+      const filtered = notifs.filter(n =>
+        !user.clearedNotifications?.includes(n.id) &&
+        !(n.excludeUserIds && Array.isArray(n.excludeUserIds) && n.excludeUserIds.includes(user.id))
+      )
+      setUserNotifications(filtered)
+    })
+    return () => unsub()
   }, [user])
 
   const validateForm = () => {
@@ -339,6 +355,48 @@ export function UserProfileDialog({ open, onOpenChange }: UserProfileDialogProps
             </CardContent>
           </Card>
         </div>
+        {/* Notification Center Section */}
+        {/* Removed Notification Center from profile dialog */}
+        {/* Admin Custom Notification Section */}
+        {(user.role === "admin" || user.role === "superadmin") && (
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle className="text-lg">Send Notification to All Users</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault()
+                  if (!customNotifMsg.trim()) return
+                  await addNotification({
+                    message: customNotifMsg.trim(),
+                    senderId: user.id,
+                    senderName: user.name,
+                    type: "admin_custom"
+                  })
+                  setCustomNotifMsg("")
+                  setNotifSent(true)
+                  setTimeout(() => setNotifSent(false), 2000)
+                }}
+                className="space-y-4"
+              >
+                <Label htmlFor="customNotifMsg">Notification Message</Label>
+                <textarea
+                  id="customNotifMsg"
+                  value={customNotifMsg}
+                  onChange={e => setCustomNotifMsg(e.target.value)}
+                  className="w-full min-h-[60px] border rounded p-2"
+                  placeholder="Enter your notification message..."
+                  required
+                />
+                <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white">
+                  Send Notification
+                </Button>
+                {notifSent && <span className="text-green-600 ml-2">Notification sent!</span>}
+              </form>
+            </CardContent>
+          </Card>
+        )}
       </DialogContent>
     </Dialog>
   )

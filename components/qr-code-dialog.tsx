@@ -1,11 +1,13 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Download, Copy, Check } from "lucide-react"
+import { Download, Copy, Check, Share2 } from "lucide-react"
+import { FaWhatsapp, FaTelegramPlane, FaViber, FaFacebookF } from "react-icons/fa"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import type { Contact } from "@/types/contact"
 import { BusinessCardExport } from "./BusinessCardExport"
+import { QRCodeCanvas } from "qrcode.react"
 
 interface QRCodeDialogProps {
   open: boolean
@@ -16,7 +18,7 @@ interface QRCodeDialogProps {
 export function QRCodeDialog({ open, onOpenChange, contact }: QRCodeDialogProps) {
   const [qrCodeUrl, setQrCodeUrl] = useState("")
   const [copied, setCopied] = useState(false)
-  const [contactDataCopied, setContactDataCopied] = useState(false)
+  const [showSocialPopup, setShowSocialPopup] = useState(false)
 
   useEffect(() => {
     if (contact) {
@@ -39,28 +41,6 @@ END:VCARD`
       setQrCodeUrl(qrUrl)
     }
   }, [contact])
-
-  const handleCopyContactData = async () => {
-    if (contact) {
-      const contactData = {
-        name: contact.name,
-        title: contact.title,
-        company: contact.company,
-        email: contact.email,
-        phone: contact.phone,
-        address: contact.address,
-        notes: contact.notes,
-      }
-
-      try {
-        await navigator.clipboard.writeText(JSON.stringify(contactData, null, 2))
-        setContactDataCopied(true)
-        setTimeout(() => setContactDataCopied(false), 2000)
-      } catch (err) {
-        console.error("Failed to copy contact data:", err)
-      }
-    }
-  }
 
   const handleCopyQRCode = async () => {
     if (qrCodeUrl) {
@@ -138,6 +118,88 @@ END:VCARD`
     }
   }
 
+  // Add a helper to share the business card image
+  const handleShareBusinessCard = async (platform: 'whatsapp' | 'telegram' | 'viber' | 'facebook') => {
+    if (!contact) return
+    try {
+      // Create an off-screen container
+      const container = document.createElement("div")
+      container.style.position = "fixed"
+      container.style.left = "-9999px"
+      container.style.top = "0"
+      container.style.width = "326px"
+      container.style.height = "202px"
+      container.style.zIndex = "-9999"
+      document.body.appendChild(container)
+
+      // Render BusinessCardExport into the container using React 18 createRoot
+      const ReactDOM = await import("react-dom/client")
+      const root = ReactDOM.createRoot(container)
+      root.render(<BusinessCardExport contact={contact} />)
+
+      // Wait for render
+      await new Promise((resolve) => setTimeout(resolve, 500))
+
+      // Import html2canvas dynamically
+      const html2canvas = (await import("html2canvas")).default
+      const canvas = await html2canvas(container, {
+        width: 326,
+        height: 202,
+        scale: 2,
+        backgroundColor: "#ffffff",
+        useCORS: true,
+        allowTaint: true,
+        foreignObjectRendering: false,
+        logging: false,
+        imageTimeout: 15000,
+      })
+
+      // Clean up
+      root.unmount()
+      document.body.removeChild(container)
+
+      // Convert to blob
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png", 1.0))
+      if (!blob) throw new Error("Failed to generate image blob")
+      const file = new File([blob], `${contact.name.replace(/\s+/g, "_")}_business_card.png`, { type: "image/png" })
+
+      // Try Web Share API
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: `Contact Card: ${contact.name}`,
+          text: `Contact card for ${contact.name}`,
+        })
+        return
+      }
+
+      // Fallback: download image and open social app share URL
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement("a")
+      link.href = url
+      link.download = `${contact.name.replace(/\s+/g, "_")}_business_card.png`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+
+      // Open social app share URL
+      let shareUrl = ""
+      if (platform === "whatsapp") {
+        shareUrl = `https://wa.me/?text=Contact%20card%20for%20${encodeURIComponent(contact.name)}`
+      } else if (platform === "telegram") {
+        shareUrl = `https://t.me/share/url?url=&text=Contact%20card%20for%20${encodeURIComponent(contact.name)}`
+      } else if (platform === "viber") {
+        shareUrl = `viber://forward?text=Contact%20card%20for%20${encodeURIComponent(contact.name)}`
+      } else if (platform === "facebook") {
+        shareUrl = `https://www.facebook.com/sharer/sharer.php?u=&quote=Contact%20card%20for%20${encodeURIComponent(contact.name)}`
+      }
+      window.open(shareUrl, "_blank")
+    } catch (error) {
+      alert("Failed to share business card. Please try again.")
+    }
+  }
+
   if (!contact) return null
 
   // Debug: log the contact object being rendered
@@ -155,15 +217,16 @@ END:VCARD`
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* QR Code */}
+          {/* QR Code (same size as ContactCard) */}
           <div className="flex justify-center">
-            <div className="p-3 bg-white rounded-lg shadow-sm border">
-              {qrCodeUrl ? (
-                <img src={qrCodeUrl || "/placeholder.svg"} alt={`QR Code for ${(contact.name && contact.name.trim()) ? contact.name : contact.company}`} className="w-32 h-32" />
-              ) : (
-                <div className="w-32 h-32 bg-gray-100 rounded-lg flex items-center justify-center">
-                  <span className="text-gray-500 text-xs">Generating...</span>
-                </div>
+            <div className="p-1.5 bg-white rounded shadow-sm border">
+              {contact && (
+                <QRCodeCanvas
+                  value={`BEGIN:VCARD\nVERSION:3.0\nFN:${contact.name ? contact.name.trim().replace(/\s+/g, ' ') : ''}\nTEL:${contact.phone}\nEMAIL:${contact.email}\nADR:;;${contact.address || ''};;;;\nURL:${contact.website || ''}\nNOTE:${contact.notes || ''}\nEND:VCARD`}
+                  size={128}
+                  level="M"
+                  includeMargin={false}
+                />
               )}
             </div>
           </div>
@@ -204,25 +267,35 @@ END:VCARD`
                 ) : (
                   <>
                     <Copy className="h-4 w-4 mr-2" />
-                    QR URL
+                    Copy QR URL
                   </>
                 )}
               </Button>
             </div>
 
-            <Button onClick={handleCopyContactData} variant="outline" className="w-full bg-transparent">
-              {contactDataCopied ? (
-                <>
-                  <Check className="h-4 w-4 mr-2" />
-                  Contact Data Copied!
-                </>
-              ) : (
-                <>
-                  <Copy className="h-4 w-4 mr-2" />
-                  Copy Contact Data
-                </>
+            {/* Social Media Share Button */}
+            <div className="relative mt-2">
+              <Button onClick={() => setShowSocialPopup((v) => !v)} variant="outline" className="w-full bg-blue-50 text-blue-800 border-blue-200 flex items-center justify-center">
+                <Share2 className="h-4 w-4 mr-2" />
+                Social Media
+              </Button>
+              {showSocialPopup && (
+                <div className="absolute left-1/2 top-full z-30 mt-2 -translate-x-1/2 bg-white rounded-lg shadow-lg border flex gap-3 p-3 animate-fade-in" style={{ minWidth: 180, maxWidth: 240 }}>
+                  <button onClick={() => { setShowSocialPopup(false); handleShareBusinessCard('whatsapp') }} title="WhatsApp" className="hover:scale-110 transition-transform">
+                    <FaWhatsapp className="text-green-500" size={24} />
+                  </button>
+                  <button onClick={() => { setShowSocialPopup(false); handleShareBusinessCard('telegram') }} title="Telegram" className="hover:scale-110 transition-transform">
+                    <FaTelegramPlane className="text-blue-500" size={24} />
+                  </button>
+                  <button onClick={() => { setShowSocialPopup(false); handleShareBusinessCard('viber') }} title="Viber" className="hover:scale-110 transition-transform">
+                    <FaViber className="text-purple-600" size={24} />
+                  </button>
+                  <button onClick={() => { setShowSocialPopup(false); handleShareBusinessCard('facebook') }} title="Facebook" className="hover:scale-110 transition-transform">
+                    <FaFacebookF className="text-blue-700" size={24} />
+                  </button>
+                </div>
               )}
-            </Button>
+            </div>
           </div>
         </div>
       </DialogContent>

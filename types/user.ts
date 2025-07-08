@@ -2,10 +2,11 @@ export interface User {
   id: string
   email: string
   password: string
-  role: "admin" | "user"
+  role: "superadmin" | "admin" | "editor" | "viewer"
   name: string
   dateAdded: Date
   isActive: boolean
+  clearedNotifications?: string[]
 }
 
 export interface AuthState {
