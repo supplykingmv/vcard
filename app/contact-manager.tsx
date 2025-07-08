@@ -314,7 +314,8 @@ export default function ContactManager() {
           />
         )}
 
-        {/* Stats */}
+        {/* Remove the stats/counters section */}
+        {/*
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 text-center shadow-lg border border-white/20">
             <div className="text-2xl font-bold text-green-600">{contacts.length}</div>
@@ -339,6 +340,7 @@ export default function ContactManager() {
             <div className="text-sm text-gray-600">Personal</div>
           </div>
         </div>
+        */}
 
         {/* Contacts View */}
         {renderContactsView()}
