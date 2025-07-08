@@ -1,5 +1,5 @@
+'use client'
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/router";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { ContactCard } from "@/components/contact-card";
