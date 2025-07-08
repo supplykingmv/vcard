@@ -46,7 +46,7 @@ export function SignInPage() {
     }
 
     try {
-      const success = await login(email, password)
+      const success = await login(email, password, rememberMe)
       if (!success) {
         setError("Invalid email or password")
       }
@@ -89,7 +89,7 @@ export function SignInPage() {
             backgroundImage: `url('/line-pattern.png')`,
             backgroundSize: '400px 400px',
             backgroundRepeat: 'repeat',
-            opacity: 0.10,
+            opacity: 0.07,
           }}
         />
         {/* No green overlay */}

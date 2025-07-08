@@ -13,6 +13,9 @@ import {
   deleteUser as firebaseDeleteUser,
   User as FirebaseUser,
   sendPasswordResetEmail,
+  setPersistence,
+  browserLocalPersistence,
+  browserSessionPersistence,
 } from "firebase/auth"
 import {
   collection,
@@ -27,7 +30,7 @@ import {
 } from "firebase/firestore"
 
 interface AuthContextType extends AuthState {
-  login: (email: string, password: string) => Promise<boolean>
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<boolean>
   logout: () => void
   addUser: (userData: Omit<User, "id" | "dateAdded">) => Promise<boolean>
   getUsers: () => Promise<User[]>
@@ -209,8 +212,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string, rememberMe = false): Promise<boolean> => {
     try {
+      await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence)
       await signInWithEmailAndPassword(auth, email, password)
       return true
     } catch (error) {

@@ -57,7 +57,17 @@ export default function ContactManager() {
       const matchesCategory = filterCategory === "all" || contact.category === filterCategory
       return matchesSearch && matchesCategory
     })
+    .map((contact) => {
+      // If this is the user's own business card, set category to 'My Business Card'
+      if (user && contact.email === user.email && contact.phone === user.phone) {
+        return { ...contact, category: "My Card", pinned: true }
+      }
+      return contact
+    })
     .sort((a, b) => {
+      // Pinned (My Business Card) always first
+      if (a.pinned && !b.pinned) return -1
+      if (!a.pinned && b.pinned) return 1
       switch (sortBy) {
         case "name":
           return a.name.localeCompare(b.name)

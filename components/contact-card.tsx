@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Mail, Phone, Building, Edit, Trash2, QrCode } from "lucide-react"
+import { Mail, Phone, Building, Edit, Trash2, QrCode, Pin } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -131,10 +131,13 @@ export function ContactCard({ contact, onEdit, onDelete, onShare, variant = "def
           >
             <Badge
               variant="outline"
-              className={`${getCategoryColor(contact.category)} text-xs px-1 py-0`}
+              className={`${getCategoryColor(contact.category)} text-xs px-1 py-0 flex items-center gap-1`}
               data-category-badge
             >
               {contact.category}
+              {contact.pinned && contact.category === "My Card" && (
+                <Pin className="inline-block ml-1 text-yellow-500 w-3.5 h-3.5" fill="#facc15" />
+              )}
             </Badge>
             <span className="text-xs text-gray-400 flex-shrink-0 ml-2" data-date-added>
               {contact.dateAdded ? new Date(contact.dateAdded).toLocaleDateString() : ""}
