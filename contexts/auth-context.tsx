@@ -92,6 +92,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     phone: data.phone || "",
     website: data.website || "",
     address: data.address || "",
+    company: data.company || "",
+    title: data.title || "",
   })
 
   // Listen for Firebase Auth state changes
@@ -125,6 +127,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             phone: user.phone || "",
             website: user.website || "",
             address: user.address || "",
+            company: user.company || "",
+            title: user.title || "",
           })
         }
         setAuthState({ user, isAuthenticated: true })
@@ -148,6 +152,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         dateAdded: new Date().toISOString(),
         isActive: userData.isActive,
         clearedNotifications: [],
+        phone: userData.phone || "",
+        website: userData.website || "",
+        address: userData.address || "",
+        company: userData.company || "",
+        title: userData.title || "",
       })
       return true
     } catch (e) {

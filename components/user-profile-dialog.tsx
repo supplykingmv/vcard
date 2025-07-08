@@ -10,9 +10,13 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { useAuth } from "@/contexts/auth-context"
-import { addNotification, subscribeToNotifications } from "@/lib/firebase"
+import { addContact, subscribeToNotifications } from "@/lib/firebase"
 import { QRCodeCanvas } from "qrcode.react"
 import { ContactCard } from "@/components/contact-card"
+import { FaWhatsapp, FaTelegramPlane, FaViber, FaFacebookF } from "react-icons/fa"
+import { BusinessCardExport } from "./BusinessCardExport"
+import html2canvas from "html2canvas"
+import React, { useRef } from "react"
 
 interface UserProfileDialogProps {
   open: boolean
@@ -30,6 +34,8 @@ export function UserProfileDialog({ open, onOpenChange }: UserProfileDialogProps
     phone: "",
     website: "",
     address: "",
+    company: "",
+    title: "",
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
@@ -38,6 +44,7 @@ export function UserProfileDialog({ open, onOpenChange }: UserProfileDialogProps
   const [customNotifMsg, setCustomNotifMsg] = useState("")
   const [notifSent, setNotifSent] = useState(false)
   const [userNotifications, setUserNotifications] = useState<any[]>([])
+  const businessCardRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (user) {
@@ -47,6 +54,8 @@ export function UserProfileDialog({ open, onOpenChange }: UserProfileDialogProps
         phone: user.phone || "",
         website: user.website || "",
         address: user.address || "",
+        company: user.company || "",
+        title: user.title || "",
         currentPassword: "",
         newPassword: "",
         confirmPassword: "",
@@ -95,7 +104,7 @@ export function UserProfileDialog({ open, onOpenChange }: UserProfileDialogProps
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!user || !validateForm()) return
 
     // Verify current password if changing password
@@ -110,14 +119,34 @@ export function UserProfileDialog({ open, onOpenChange }: UserProfileDialogProps
       phone: formData.phone,
       website: formData.website,
       address: formData.address,
+      company: formData.company,
+      title: formData.title,
     }
 
     if (formData.newPassword) {
       updateData.password = formData.newPassword
     }
 
-    const success = updateUser(user.id, updateData)
+    const success = await updateUser(user.id, updateData)
     if (success) {
+      // Create business card for user if not exists
+      try {
+        // Check if a business card already exists for this user (by name/email/phone/website/address)
+        // For simplicity, always create/update the card (idempotent for this use case)
+        await addContact(user.id, {
+          name: formData.name,
+          title: user.title || "",
+          company: user.company || "",
+          email: formData.email,
+          phone: formData.phone,
+          category: "Personal",
+          website: formData.website,
+          address: formData.address,
+          notes: "",
+        })
+      } catch (e) {
+        // Optionally handle error
+      }
       setIsEditing(false)
       setFormData({
         ...formData,
@@ -137,6 +166,8 @@ export function UserProfileDialog({ open, onOpenChange }: UserProfileDialogProps
         phone: user.phone || "",
         website: user.website || "",
         address: user.address || "",
+        company: user.company || "",
+        title: user.title || "",
         currentPassword: "",
         newPassword: "",
         confirmPassword: "",
@@ -157,11 +188,58 @@ export function UserProfileDialog({ open, onOpenChange }: UserProfileDialogProps
     }
   }
 
+  // Share handler
+  const handleShareBusinessCard = async (platform: 'whatsapp' | 'telegram' | 'viber' | 'facebook') => {
+    if (!user) return
+    try {
+      // Render business card to image
+      const container = businessCardRef.current
+      if (!container) return
+      const canvas = await html2canvas(container, {
+        width: 326,
+        height: 202,
+        scale: 2,
+        backgroundColor: "#ffffff",
+        useCORS: true,
+        allowTaint: true,
+        foreignObjectRendering: false,
+        logging: false,
+        imageTimeout: 15000,
+      })
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png", 1.0))
+      if (!blob) throw new Error("Failed to generate image blob")
+      const file = new File([blob], `${user.name.replace(/\s+/g, "_")}_business_card.png`, { type: "image/png" })
+      // Try Web Share API
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: `Contact Card: ${user.name}`,
+          text: `Contact card for ${user.name}`,
+        })
+        return
+      }
+      // Fallback: open social app share URL
+      let shareUrl = ""
+      if (platform === "whatsapp") {
+        shareUrl = `https://wa.me/?text=Contact%20card%20for%20${encodeURIComponent(user.name)}`
+      } else if (platform === "telegram") {
+        shareUrl = `https://t.me/share/url?url=&text=Contact%20card%20for%20${encodeURIComponent(user.name)}`
+      } else if (platform === "viber") {
+        shareUrl = `viber://forward?text=Contact%20card%20for%20${encodeURIComponent(user.name)}`
+      } else if (platform === "facebook") {
+        shareUrl = `https://www.facebook.com/sharer/sharer.php?u=&quote=Contact%20card%20for%20${encodeURIComponent(user.name)}`
+      }
+      window.open(shareUrl, "_blank")
+    } catch (error) {
+      alert("Failed to share business card. Please try again.")
+    }
+  }
+
   if (!user) return null
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold text-gray-900 flex items-center gap-2">
             <User className="h-5 w-5 text-green-600" />
@@ -208,11 +286,33 @@ export function UserProfileDialog({ open, onOpenChange }: UserProfileDialogProps
                   <div className="flex flex-col items-center ml-6">
                     <span className="mb-2 font-semibold text-green-700">My Business Card</span>
                     <QRCodeCanvas
-                      value={`${window.location.origin}/business-card/${user.id}`}
+                      value={`BEGIN:VCARD\nVERSION:3.0\nFN:${user.name}\nTEL:${user.phone}\nEMAIL:${user.email}\nURL:${user.website}\nADR:;;${user.address};;;;\nEND:VCARD`}
                       size={128}
                       level="M"
                       includeMargin={false}
                     />
+                    {/* Hidden business card for export */}
+                    <div style={{ position: 'absolute', left: '-9999px', top: 0 }} ref={businessCardRef}>
+                      <BusinessCardExport contact={{
+                        id: user.id,
+                        name: user.name,
+                        title: user.title || "",
+                        company: user.company || "",
+                        email: user.email,
+                        phone: user.phone,
+                        category: "Personal",
+                        dateAdded: new Date(),
+                        notes: "",
+                        website: user.website,
+                        address: user.address,
+                      }} />
+                    </div>
+                    <div className="flex gap-2 mt-2">
+                      <Button size="icon" variant="outline" onClick={() => handleShareBusinessCard('whatsapp')}><FaWhatsapp className="text-green-600" /></Button>
+                      <Button size="icon" variant="outline" onClick={() => handleShareBusinessCard('telegram')}><FaTelegramPlane className="text-blue-500" /></Button>
+                      <Button size="icon" variant="outline" onClick={() => handleShareBusinessCard('viber')}><FaViber className="text-purple-600" /></Button>
+                      <Button size="icon" variant="outline" onClick={() => handleShareBusinessCard('facebook')}><FaFacebookF className="text-blue-700" /></Button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -227,7 +327,7 @@ export function UserProfileDialog({ open, onOpenChange }: UserProfileDialogProps
             <CardContent className="space-y-4">
               {!isEditing ? (
                 // View Mode
-                <div className="space-y-4">
+                <div className="space-y-4 relative">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label className="text-sm font-medium text-gray-700">Full Name</Label>
@@ -246,6 +346,22 @@ export function UserProfileDialog({ open, onOpenChange }: UserProfileDialogProps
                     </div>
                   </div>
 
+                  {/* In the profile view mode, display Organization and Job Title */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Organization</Label>
+                      <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg">
+                        <span className="text-gray-900">{user.company || "-"}</span>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Job Title</Label>
+                      <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg">
+                        <span className="text-gray-900">{user.title || "-"}</span>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="space-y-2">
                     <Label className="text-sm font-medium text-gray-700">Account Created</Label>
                     <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg">
@@ -253,6 +369,14 @@ export function UserProfileDialog({ open, onOpenChange }: UserProfileDialogProps
                       <span className="text-gray-900">{formatDate(user.dateAdded)}</span>
                     </div>
                   </div>
+                  {/* Update Profile Button */}
+                  <button
+                    className="absolute right-0 bottom-0 text-green-700 hover:underline text-sm font-medium px-3 py-1 bg-transparent border-none cursor-pointer"
+                    onClick={() => setIsEditing(true)}
+                    type="button"
+                  >
+                    Update Profile
+                  </button>
                 </div>
               ) : (
                 // Edit Mode
@@ -299,6 +423,26 @@ export function UserProfileDialog({ open, onOpenChange }: UserProfileDialogProps
                         value={formData.website}
                         onChange={(e) => setFormData({ ...formData, website: e.target.value })}
                         placeholder="Enter your website"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="company">Organization</Label>
+                      <Input
+                        id="company"
+                        value={formData.company}
+                        onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                        placeholder="Enter your organization"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="title">Job Title</Label>
+                      <Input
+                        id="title"
+                        value={formData.title}
+                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                        placeholder="Enter your job title"
                       />
                     </div>
                   </div>

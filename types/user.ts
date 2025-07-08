@@ -10,6 +10,8 @@ export interface User {
   phone?: string
   website?: string
   address?: string
+  company?: string
+  title?: string
 }
 
 export interface AuthState {
