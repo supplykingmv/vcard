@@ -7,6 +7,9 @@ export interface User {
   dateAdded: Date
   isActive: boolean
   clearedNotifications?: string[]
+  phone?: string
+  website?: string
+  address?: string
 }
 
 export interface AuthState {

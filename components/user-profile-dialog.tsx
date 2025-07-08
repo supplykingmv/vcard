@@ -11,6 +11,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { useAuth } from "@/contexts/auth-context"
 import { addNotification, subscribeToNotifications } from "@/lib/firebase"
+import { QRCodeCanvas } from "qrcode.react"
+import { ContactCard } from "@/components/contact-card"
 
 interface UserProfileDialogProps {
   open: boolean
@@ -25,6 +27,9 @@ export function UserProfileDialog({ open, onOpenChange }: UserProfileDialogProps
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    phone: "",
+    website: "",
+    address: "",
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
@@ -39,6 +44,9 @@ export function UserProfileDialog({ open, onOpenChange }: UserProfileDialogProps
       setFormData({
         name: user.name,
         email: user.email,
+        phone: user.phone || "",
+        website: user.website || "",
+        address: user.address || "",
         currentPassword: "",
         newPassword: "",
         confirmPassword: "",
@@ -99,6 +107,9 @@ export function UserProfileDialog({ open, onOpenChange }: UserProfileDialogProps
     const updateData: any = {
       name: formData.name,
       email: formData.email,
+      phone: formData.phone,
+      website: formData.website,
+      address: formData.address,
     }
 
     if (formData.newPassword) {
@@ -123,6 +134,9 @@ export function UserProfileDialog({ open, onOpenChange }: UserProfileDialogProps
       setFormData({
         name: user.name,
         email: user.email,
+        phone: user.phone || "",
+        website: user.website || "",
+        address: user.address || "",
         currentPassword: "",
         newPassword: "",
         confirmPassword: "",
@@ -189,10 +203,17 @@ export function UserProfileDialog({ open, onOpenChange }: UserProfileDialogProps
                     </Badge>
                   </div>
                 </div>
-                {!isEditing && (
-                  <Button onClick={() => setIsEditing(true)} className="bg-green-600 hover:bg-green-700 text-white">
-                    Edit Profile
-                  </Button>
+                {/* QR Code for Business Card */}
+                {user.name && user.email && user.phone && user.website && user.address && (
+                  <div className="flex flex-col items-center ml-6">
+                    <span className="mb-2 font-semibold text-green-700">My Business Card</span>
+                    <QRCodeCanvas
+                      value={`${window.location.origin}/business-card/${user.id}`}
+                      size={128}
+                      level="M"
+                      includeMargin={false}
+                    />
+                  </div>
                 )}
               </div>
             </CardContent>
@@ -248,7 +269,6 @@ export function UserProfileDialog({ open, onOpenChange }: UserProfileDialogProps
                       />
                       {errors.name && <p className="text-sm text-red-600">{errors.name}</p>}
                     </div>
-
                     <div className="space-y-2">
                       <Label htmlFor="email">Email Address *</Label>
                       <Input
@@ -261,6 +281,35 @@ export function UserProfileDialog({ open, onOpenChange }: UserProfileDialogProps
                       />
                       {errors.email && <p className="text-sm text-red-600">{errors.email}</p>}
                     </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">Phone</Label>
+                      <Input
+                        id="phone"
+                        value={formData.phone}
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                        placeholder="Enter your phone number"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="website">Website</Label>
+                      <Input
+                        id="website"
+                        value={formData.website}
+                        onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                        placeholder="Enter your website"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="address">Address</Label>
+                    <Input
+                      id="address"
+                      value={formData.address}
+                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                      placeholder="Enter your address"
+                    />
                   </div>
 
                   {/* Password Change Section */}
@@ -350,6 +399,8 @@ export function UserProfileDialog({ open, onOpenChange }: UserProfileDialogProps
                       Cancel
                     </Button>
                   </div>
+                  {/* Contact Card & QR Code Preview */}
+                  {/* Removed business card preview from edit form */}
                 </form>
               )}
             </CardContent>
@@ -358,45 +409,7 @@ export function UserProfileDialog({ open, onOpenChange }: UserProfileDialogProps
         {/* Notification Center Section */}
         {/* Removed Notification Center from profile dialog */}
         {/* Admin Custom Notification Section */}
-        {(user.role === "admin" || user.role === "superadmin") && (
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle className="text-lg">Send Notification to All Users</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form
-                onSubmit={async (e) => {
-                  e.preventDefault()
-                  if (!customNotifMsg.trim()) return
-                  await addNotification({
-                    message: customNotifMsg.trim(),
-                    senderId: user.id,
-                    senderName: user.name,
-                    type: "admin_custom"
-                  })
-                  setCustomNotifMsg("")
-                  setNotifSent(true)
-                  setTimeout(() => setNotifSent(false), 2000)
-                }}
-                className="space-y-4"
-              >
-                <Label htmlFor="customNotifMsg">Notification Message</Label>
-                <textarea
-                  id="customNotifMsg"
-                  value={customNotifMsg}
-                  onChange={e => setCustomNotifMsg(e.target.value)}
-                  className="w-full min-h-[60px] border rounded p-2"
-                  placeholder="Enter your notification message..."
-                  required
-                />
-                <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white">
-                  Send Notification
-                </Button>
-                {notifSent && <span className="text-green-600 ml-2">Notification sent!</span>}
-              </form>
-            </CardContent>
-          </Card>
-        )}
+        {/* Removed Send Notification to All Users section from User Profile Dialog */}
       </DialogContent>
     </Dialog>
   )

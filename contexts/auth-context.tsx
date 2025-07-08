@@ -89,6 +89,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     dateAdded: data.dateAdded ? new Date(data.dateAdded) : new Date(),
     isActive: data.isActive !== false,
     clearedNotifications: data.clearedNotifications || [],
+    phone: data.phone || "",
+    website: data.website || "",
+    address: data.address || "",
   })
 
   // Listen for Firebase Auth state changes
@@ -119,6 +122,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             dateAdded: user.dateAdded.toISOString(),
             isActive: true,
             clearedNotifications: [],
+            phone: user.phone || "",
+            website: user.website || "",
+            address: user.address || "",
           })
         }
         setAuthState({ user, isAuthenticated: true })
