@@ -45,6 +45,7 @@ export function UserProfileDialog({ open, onOpenChange }: UserProfileDialogProps
   const [notifSent, setNotifSent] = useState(false)
   const [userNotifications, setUserNotifications] = useState<any[]>([])
   const businessCardRef = useRef<HTMLDivElement>(null)
+  const [showShareButtons, setShowShareButtons] = useState(true)
 
   useEffect(() => {
     if (user) {
@@ -74,6 +75,10 @@ export function UserProfileDialog({ open, onOpenChange }: UserProfileDialogProps
     })
     return () => unsub()
   }, [user])
+
+  useEffect(() => {
+    if (open) setShowShareButtons(true)
+  }, [open])
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
@@ -190,6 +195,8 @@ export function UserProfileDialog({ open, onOpenChange }: UserProfileDialogProps
 
   // Share handler
   const handleShareBusinessCard = async (platform: 'whatsapp' | 'telegram' | 'viber' | 'facebook') => {
+    setShowShareButtons(false)
+    await new Promise((resolve) => setTimeout(resolve, 100)) // allow UI to update
     if (!user) return
     try {
       // Render business card to image
@@ -239,10 +246,10 @@ export function UserProfileDialog({ open, onOpenChange }: UserProfileDialogProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-full w-full sm:max-w-2xl max-h-[90vh] overflow-y-auto p-2 sm:p-6">
         <DialogHeader>
-          <DialogTitle className="text-xl font-semibold text-gray-900 flex items-center gap-2">
-            <User className="h-5 w-5 text-green-600" />
+          <DialogTitle className="text-base sm:text-xl font-semibold text-gray-900 flex items-center gap-2">
+            <User className="h-5 w-5 sm:h-6 sm:w-6 text-green-600" />
             User Profile
           </DialogTitle>
           <DialogDescription>View and manage your profile information.</DialogDescription>
@@ -250,21 +257,21 @@ export function UserProfileDialog({ open, onOpenChange }: UserProfileDialogProps
 
         <div className="space-y-6">
           {/* Profile Header */}
-          <Card className="bg-gradient-to-r from-green-50 to-white border-green-200">
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-4">
+          <Card className="bg-gradient-to-r from-green-50 to-white border-green-200 w-full">
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row items-center sm:items-start sm:space-x-4 space-y-4 sm:space-y-0">
                 <Avatar className="h-16 w-16 ring-4 ring-green-500/20">
-                  <AvatarFallback className="bg-gradient-to-br from-green-500 to-green-600 text-white font-bold text-xl">
+                  <AvatarFallback className="bg-gradient-to-br from-green-500 to-green-600 text-white font-bold text-base sm:text-xl">
                     {user.name
                       .split(" ")
                       .map((n) => n[0])
                       .join("")}
                   </AvatarFallback>
                 </Avatar>
-                <div className="flex-1">
-                  <h3 className="text-xl font-semibold text-gray-900">{user.name}</h3>
-                  <p className="text-gray-600">{user.email}</p>
-                  <div className="flex items-center space-x-3 mt-2">
+                <div className="flex-1 w-full">
+                  <h3 className="text-base sm:text-xl font-semibold text-gray-900">{user.name}</h3>
+                  <p className="text-xs sm:text-sm text-gray-600">{user.email}</p>
+                  <div className="flex flex-wrap items-center gap-2 mt-2">
                     <Badge
                       variant="outline"
                       className={
@@ -273,48 +280,14 @@ export function UserProfileDialog({ open, onOpenChange }: UserProfileDialogProps
                           : "bg-blue-100 text-blue-800 border-blue-200"
                       }
                     >
-                      <Shield className="h-3 w-3 mr-1" />
+                      <Shield className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                       {user.role}
                     </Badge>
-                    <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
+                    <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200 text-xs sm:text-sm">
                       Active
                     </Badge>
                   </div>
                 </div>
-                {/* QR Code for Business Card */}
-                {user.name && user.email && user.phone && user.website && user.address && (
-                  <div className="flex flex-col items-center ml-6">
-                    <span className="mb-2 font-semibold text-green-700">My Business Card</span>
-                    <QRCodeCanvas
-                      value={`BEGIN:VCARD\nVERSION:3.0\nFN:${user.name}\nTEL:${user.phone}\nEMAIL:${user.email}\nURL:${user.website}\nADR:;;${user.address};;;;\nEND:VCARD`}
-                      size={128}
-                      level="M"
-                      includeMargin={false}
-                    />
-                    {/* Hidden business card for export */}
-                    <div style={{ position: 'absolute', left: '-9999px', top: 0 }} ref={businessCardRef}>
-                      <BusinessCardExport contact={{
-                        id: user.id,
-                        name: user.name,
-                        title: user.title || "",
-                        company: user.company || "",
-                        email: user.email,
-                        phone: user.phone,
-                        category: "Personal",
-                        dateAdded: new Date(),
-                        notes: "",
-                        website: user.website,
-                        address: user.address,
-                      }} />
-                    </div>
-                    <div className="flex gap-2 mt-2">
-                      <Button size="icon" variant="outline" onClick={() => handleShareBusinessCard('whatsapp')}><FaWhatsapp className="text-green-600" /></Button>
-                      <Button size="icon" variant="outline" onClick={() => handleShareBusinessCard('telegram')}><FaTelegramPlane className="text-blue-500" /></Button>
-                      <Button size="icon" variant="outline" onClick={() => handleShareBusinessCard('viber')}><FaViber className="text-purple-600" /></Button>
-                      <Button size="icon" variant="outline" onClick={() => handleShareBusinessCard('facebook')}><FaFacebookF className="text-blue-700" /></Button>
-                    </div>
-                  </div>
-                )}
               </div>
             </CardContent>
           </Card>
@@ -322,7 +295,7 @@ export function UserProfileDialog({ open, onOpenChange }: UserProfileDialogProps
           {/* Profile Information */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Profile Information</CardTitle>
+              <CardTitle className="text-base sm:text-lg">Profile Information</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {!isEditing ? (
@@ -330,18 +303,18 @@ export function UserProfileDialog({ open, onOpenChange }: UserProfileDialogProps
                 <div className="space-y-4 relative">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-700">Full Name</Label>
+                      <Label className="text-xs sm:text-sm font-medium text-gray-700">Full Name</Label>
                       <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg">
                         <User className="h-4 w-4 text-gray-400" />
-                        <span className="text-gray-900">{user.name}</span>
+                        <span className="text-xs sm:text-sm text-gray-900">{user.name}</span>
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-700">Email Address</Label>
+                      <Label className="text-xs sm:text-sm font-medium text-gray-700">Email Address</Label>
                       <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg">
                         <Mail className="h-4 w-4 text-gray-400" />
-                        <span className="text-gray-900">{user.email}</span>
+                        <span className="text-xs sm:text-sm text-gray-900">{user.email}</span>
                       </div>
                     </div>
                   </div>
@@ -349,24 +322,24 @@ export function UserProfileDialog({ open, onOpenChange }: UserProfileDialogProps
                   {/* In the profile view mode, display Organization and Job Title */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-700">Organization</Label>
+                      <Label className="text-xs sm:text-sm font-medium text-gray-700">Organization</Label>
                       <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg">
-                        <span className="text-gray-900">{user.company || "-"}</span>
+                        <span className="text-xs sm:text-sm text-gray-900">{user.company || "-"}</span>
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-700">Job Title</Label>
+                      <Label className="text-xs sm:text-sm font-medium text-gray-700">Job Title</Label>
                       <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg">
-                        <span className="text-gray-900">{user.title || "-"}</span>
+                        <span className="text-xs sm:text-sm text-gray-900">{user.title || "-"}</span>
                       </div>
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-700">Account Created</Label>
+                    <Label className="text-xs sm:text-sm font-medium text-gray-700">Account Created</Label>
                     <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg">
                       <Calendar className="h-4 w-4 text-gray-400" />
-                      <span className="text-gray-900">{formatDate(user.dateAdded)}</span>
+                      <span className="text-xs sm:text-sm text-gray-900">{formatDate(user.dateAdded)}</span>
                     </div>
                   </div>
                   {/* Update Profile Button */}
@@ -535,11 +508,11 @@ export function UserProfileDialog({ open, onOpenChange }: UserProfileDialogProps
 
                   {/* Action Buttons */}
                   <div className="flex gap-2 pt-4">
-                    <Button type="button" onClick={handleSave} className="bg-green-600 hover:bg-green-700 text-white">
+                    <Button type="button" onClick={handleSave} className="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto text-xs sm:text-sm">
                       <Save className="h-4 w-4 mr-2" />
                       Save Changes
                     </Button>
-                    <Button type="button" variant="outline" onClick={handleCancel}>
+                    <Button type="button" variant="outline" onClick={handleCancel} className="w-full sm:w-auto text-xs sm:text-sm">
                       Cancel
                     </Button>
                   </div>
