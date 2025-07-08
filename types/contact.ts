@@ -5,7 +5,7 @@ export interface Contact {
   company: string
   email: string
   phone: string
-  category: "Work" | "Business" | "Personal" | "My Business Card" | "My Card"
+  category: "Work" | "Business" | "Personal" | "My Card"
   avatar?: string
   dateAdded: Date
   notes?: string

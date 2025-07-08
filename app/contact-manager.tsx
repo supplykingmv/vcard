@@ -50,6 +50,10 @@ export default function ContactManager() {
 
   const filteredAndSortedContacts = contacts
     .filter((contact) => {
+      // Hide 'My Card' if the logged-in user's email does not match
+      if (contact.category === "My Card" && (!user || contact.email !== user.email)) {
+        return false
+      }
       const matchesSearch =
         contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         contact.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -58,9 +62,9 @@ export default function ContactManager() {
       return matchesSearch && matchesCategory
     })
     .map((contact) => {
-      // If this is the user's own business card, set category to 'My Business Card'
-      if (user && contact.email === user.email && contact.phone === user.phone) {
-        return { ...contact, category: "My Card", pinned: true }
+      // Only show 'My Card' if logged in user's email matches the contact's email
+      if (user && contact.email === user.email) {
+        return { ...contact, category: "My Card", pinned: true } as Contact
       }
       return contact
     })
@@ -84,8 +88,10 @@ export default function ContactManager() {
     groupBy === "category"
       ? filteredAndSortedContacts.reduce(
           (groups, contact) => {
-            const category = contact.category
-            if (!groups[category]) groups[category] = []
+            const category = contact.category || "Uncategorized"
+            if (!groups[category]) {
+              groups[category] = []
+            }
             groups[category].push(contact)
             return groups
           },
