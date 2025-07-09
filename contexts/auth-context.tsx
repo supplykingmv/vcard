@@ -13,6 +13,7 @@ import {
   deleteUser as firebaseDeleteUser,
   User as FirebaseUser,
   sendPasswordResetEmail,
+  signInWithCustomToken,
 } from "firebase/auth"
 import {
   collection,
@@ -96,8 +97,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     title: data.title || "",
   })
 
-  // Listen for Firebase Auth state changes
+  // Restore session on mount
   useEffect(() => {
+    fetch("/api/session", { method: "POST", credentials: "include" })
+      .then(res => res.json())
+      .then(async data => {
+        if (data.customToken) {
+          await signInWithCustomToken(auth, data.customToken)
+        }
+      })
+      .catch(() => {})
+    // Listen for auth state changes
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         // Fetch user metadata from Firestore
@@ -209,19 +219,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  // Replace login with session-based login
   const login = async (email: string, password: string, rememberMe = false): Promise<boolean> => {
     try {
-      // Persistence is now set globally in firebase.ts
-      // The rememberMe parameter is kept for UI purposes but doesn't affect persistence
-      await signInWithEmailAndPassword(auth, email, password)
+      const res = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+        credentials: "include",
+      })
+      if (!res.ok) return false
+      // Optionally, use idToken from response if needed
       return true
     } catch (error) {
       return false
     }
   }
 
-  const logout = () => {
-    signOut(auth)
+  // Replace logout with session-based logout
+  const logout = async () => {
+    await fetch("/api/logout", { method: "POST", credentials: "include" })
+    await signOut(auth)
   }
 
   const resetPassword = async (email: string): Promise<boolean> => {
