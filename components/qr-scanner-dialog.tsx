@@ -71,6 +71,9 @@ export function QRScannerDialog({ open, onOpenChange, onContactScanned }: QRScan
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([])
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | undefined>(undefined)
   const [mounted, setMounted] = useState(false)
+  const [scanned, setScanned] = useState(false)
+  // Reset scanned when dialog is reopened or scan mode changes
+  useEffect(() => { setScanned(false) }, [open, scanMode])
   useEffect(() => { setMounted(true) }, [])
 
   useEffect(() => {
@@ -310,6 +313,8 @@ export function QRScannerDialog({ open, onOpenChange, onContactScanned }: QRScan
                 <div>
                   <QRCodeScanner
                     onScan={(text) => {
+                      if (scanned) return;
+                      setScanned(true);
                       setCameraError(null)
                       setManualData("")
                       setScanMode("manual")
