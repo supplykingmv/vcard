@@ -72,8 +72,11 @@ export function QRScannerDialog({ open, onOpenChange, onContactScanned }: QRScan
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | undefined>(undefined)
   const [mounted, setMounted] = useState(false)
   const [scanned, setScanned] = useState(false)
+  const [scannedContact, setScannedContact] = useState<Omit<Contact, "id" | "dateAdded"> | null>(null);
   // Reset scanned when dialog is reopened or scan mode changes
   useEffect(() => { setScanned(false) }, [open, scanMode])
+  // Reset scannedContact when dialog is reopened or scan mode changes
+  useEffect(() => { setScannedContact(null); }, [open, scanMode]);
   useEffect(() => { setMounted(true) }, [])
 
   useEffect(() => {
@@ -257,13 +260,14 @@ export function QRScannerDialog({ open, onOpenChange, onContactScanned }: QRScan
               size="sm"
               onClick={() => setScanMode("camera")}
               className={scanMode === "camera" ? "bg-green-600 hover:bg-green-700" : ""}
+              disabled={!!scannedContact}
             >
               Camera
             </Button>
           </div>
 
           {/* Manual Input Mode */}
-          {scanMode === "manual" && (
+          {scanMode === "manual" && !scannedContact && (
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="manual-data">Contact Data</Label>
@@ -286,7 +290,7 @@ export function QRScannerDialog({ open, onOpenChange, onContactScanned }: QRScan
           )}
 
           {/* File Upload Mode */}
-          {scanMode === "upload" && (
+          {scanMode === "upload" && !scannedContact && (
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="file-upload">Upload Contact File</Label>
@@ -312,7 +316,7 @@ export function QRScannerDialog({ open, onOpenChange, onContactScanned }: QRScan
           )}
 
           {/* Camera Scan Mode */}
-          {scanMode === "camera" && mounted && (
+          {scanMode === "camera" && mounted && !scannedContact && (
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label>Scan QR Code</Label>
@@ -323,29 +327,28 @@ export function QRScannerDialog({ open, onOpenChange, onContactScanned }: QRScan
                       setScanned(true);
                       setCameraError(null)
                       setManualData("")
-                      setScanMode("manual")
                       setShowCamera(false)
-                      handleOpenChange(false)
+                      // Parse scanned data but do not create contact yet
+                      let contact: any = null;
                       try {
-                        const contact = JSON.parse(text)
-                        onContactScanned(contact)
+                        contact = JSON.parse(text);
                       } catch {
-                        // Try vCard fallback
-                        const contact = parseVCard(text)
-                        if (contact.name && contact.email) {
-                          onContactScanned(contact)
-                        } else {
-                          setCameraError("Scanned QR code is not valid contact data.")
-                        }
+                        contact = parseVCard(text);
+                      }
+                      if (contact && contact.name && contact.email) {
+                        setScannedContact(contact);
+                        setScanMode("manual"); // force unmount camera
+                      } else {
+                        setCameraError("Scanned QR code is not valid contact data.");
                       }
                     }}
                     onError={(err) => {
                       if (err.includes('denied')) {
-                        setCameraError('Camera access denied. Please allow camera permissions in your browser settings.')
+                        setCameraError('Camera access denied. Please allow camera permissions in your browser settings.');
                       } else if (err.includes('not found')) {
-                        setCameraError('No camera device found. If you are on iOS, try using Safari or check permissions in Settings > Safari > Camera.')
+                        setCameraError('No camera device found. If you are on iOS, try using Safari or check permissions in Settings > Safari > Camera.');
                       } else {
-                        setCameraError(err)
+                        setCameraError(err);
                       }
                     }}
                   />
@@ -358,19 +361,64 @@ export function QRScannerDialog({ open, onOpenChange, onContactScanned }: QRScan
             </div>
           )}
 
-          {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row gap-2">
-            <Button variant="outline" onClick={() => handleOpenChange(false)} className="flex-1">
-              Cancel
-            </Button>
-            <Button
-              onClick={handleManualInput}
-              disabled={!manualData.trim()}
-              className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-            >
-              Add Contact
-            </Button>
-          </div>
+          {/* Show scanned contact for confirmation */}
+          {scannedContact && (
+            <div className="space-y-4">
+              <div className="p-4 bg-gray-50 rounded-lg border">
+                <h3 className="font-semibold text-gray-900 mb-2">Scanned Contact</h3>
+                <div className="text-sm text-gray-700">
+                  <div><b>Name:</b> {scannedContact.name}</div>
+                  <div><b>Email:</b> {scannedContact.email}</div>
+                  {scannedContact.phone && <div><b>Phone:</b> {scannedContact.phone}</div>}
+                  {scannedContact.company && <div><b>Company:</b> {scannedContact.company}</div>}
+                  {scannedContact.title && <div><b>Title:</b> {scannedContact.title}</div>}
+                  {scannedContact.address && <div><b>Address:</b> {scannedContact.address}</div>}
+                  {scannedContact.notes && <div><b>Notes:</b> {scannedContact.notes}</div>}
+                  {scannedContact.website && <div><b>Website:</b> {scannedContact.website}</div>}
+                </div>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button
+                  className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                  onClick={() => {
+                    onContactScanned(scannedContact);
+                    setScannedContact(null);
+                    setScanned(false);
+                    handleOpenChange(false);
+                  }}
+                >
+                  Create Contact
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    setScannedContact(null);
+                    setScanned(false);
+                    handleOpenChange(false);
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Action Buttons for manual/upload */}
+          {!scannedContact && (scanMode === "manual" || scanMode === "upload") && (
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button variant="outline" onClick={() => handleOpenChange(false)} className="flex-1">
+                Cancel
+              </Button>
+              <Button
+                onClick={handleManualInput}
+                disabled={!manualData.trim()}
+                className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+              >
+                Add Contact
+              </Button>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
