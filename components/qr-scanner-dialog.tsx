@@ -177,8 +177,10 @@ export function QRScannerDialog({ open, onOpenChange, onContactScanned }: QRScan
         const contact = parseVCard(manualData)
         if (contact.name && contact.email) {
           onContactScanned(contact)
-          onOpenChange(false)
           setManualData("")
+          setScanMode("manual")
+          setShowCamera(false)
+          onOpenChange(false)
           return
         }
       }
@@ -190,8 +192,10 @@ export function QRScannerDialog({ open, onOpenChange, onContactScanned }: QRScan
           ...jsonData,
           category: jsonData.category || "Work",
         })
-        onOpenChange(false)
         setManualData("")
+        setScanMode("manual")
+        setShowCamera(false)
+        onOpenChange(false)
       }
     } catch (error) {
       alert("Invalid contact data format. Please check your input.")
@@ -320,13 +324,21 @@ export function QRScannerDialog({ open, onOpenChange, onContactScanned }: QRScan
                     deviceId={selectedDeviceId}
                     onScan={(text) => {
                       setCameraError(null)
-                      setManualData(text)
+                      setManualData("")
                       setScanMode("manual")
+                      setShowCamera(false)
+                      onOpenChange(false)
                       try {
                         const contact = JSON.parse(text)
                         onContactScanned(contact)
                       } catch {
-                        setCameraError("Scanned QR code is not valid contact data.")
+                        // Try vCard fallback
+                        const contact = parseVCard(text)
+                        if (contact.name && contact.email) {
+                          onContactScanned(contact)
+                        } else {
+                          setCameraError("Scanned QR code is not valid contact data.")
+                        }
                       }
                     }}
                     onError={(err) => {
