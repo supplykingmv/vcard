@@ -10,6 +10,44 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import type { Contact } from "@/types/contact"
 import dynamic from "next/dynamic"
+import { BrowserQRCodeReader } from '@zxing/browser'
+
+// QRCodeScanner component for camera mode
+function QRCodeScanner({ onScan, onError, deviceId }: { onScan: (text: string) => void, onError: (err: string) => void, deviceId?: string }) {
+  const videoRef = React.useRef<HTMLVideoElement>(null)
+  const codeReaderRef = React.useRef<BrowserQRCodeReader | null>(null)
+  useEffect(() => {
+    const codeReader = new BrowserQRCodeReader()
+    codeReaderRef.current = codeReader
+    let stop = false
+    async function start() {
+      try {
+        const videoInputDevices = await BrowserQRCodeReader.listVideoInputDevices()
+        const selectedDeviceId = deviceId || videoInputDevices[0]?.deviceId
+        if (!selectedDeviceId) throw new Error('No camera device found.')
+        await codeReader.decodeFromVideoDevice(selectedDeviceId, videoRef.current!, (result, err) => {
+          if (result) {
+            onScan(result.getText())
+            codeReader.reset()
+          } else if (err && err.message) {
+            // Only show error if not NotFoundException (no QR in frame)
+            if (!err.name.includes('NotFoundException')) {
+              onError(err.message)
+            }
+          }
+        })
+      } catch (e: any) {
+        onError(e.message || 'Camera error')
+      }
+    }
+    start()
+    return () => {
+      stop = true
+      codeReaderRef.current?.reset()
+    }
+  }, [deviceId])
+  return <video ref={videoRef} style={{ width: '100%', borderRadius: 12 }} />
+}
 
 interface QRScannerDialogProps {
   open: boolean
@@ -251,36 +289,33 @@ export function QRScannerDialog({ open, onOpenChange, onContactScanned }: QRScan
                       ))}
                     </select>
                   )}
-                  <QrReader
-                    constraints={selectedDeviceId ? { deviceId: { exact: selectedDeviceId } } : { facingMode: "environment" }}
-                    onResult={(result, error) => {
-                      if (result?.getText) {
-                        setCameraError(null)
-                        setManualData(result.getText())
-                        setScanMode("manual")
-                        // Parse QR result as contact object
-                        try {
-                          const contact = JSON.parse(result.getText())
-                          onContactScanned(contact)
-                        } catch {
-                          setCameraError("Scanned QR code is not valid contact data.")
-                        }
-                      }
-                      if (error) {
-                        if (error.name === "NotAllowedError") {
-                          setCameraError("Camera access denied. Please allow camera permissions.")
-                        } else if (error.name === "NotFoundError") {
-                          setCameraError("No camera device found.")
-                        } else {
-                          setCameraError(error.message || "Camera error")
-                        }
+                  <QRCodeScanner
+                    deviceId={selectedDeviceId}
+                    onScan={(text) => {
+                      setCameraError(null)
+                      setManualData(text)
+                      setScanMode("manual")
+                      try {
+                        const contact = JSON.parse(text)
+                        onContactScanned(contact)
+                      } catch {
+                        setCameraError("Scanned QR code is not valid contact data.")
                       }
                     }}
-                    scanDelay={300}
+                    onError={(err) => {
+                      if (err.includes('denied')) {
+                        setCameraError('Camera access denied. Please allow camera permissions in your browser settings.')
+                      } else if (err.includes('not found')) {
+                        setCameraError('No camera device found. If you are on iOS, try using Safari or check permissions in Settings > Safari > Camera.')
+                      } else {
+                        setCameraError(err)
+                      }
+                    }}
                   />
                   {cameraError && (
                     <div style={{ color: "red", marginTop: 8 }}>{cameraError}</div>
                   )}
+                  <div className="text-xs text-gray-500 mt-2">If you have issues on iOS, make sure you are using Safari and have granted camera permissions in Settings.</div>
                 </div>
               </div>
             </div>
