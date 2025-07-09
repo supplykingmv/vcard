@@ -4,17 +4,7 @@ import type React from "react"
 import { createContext, useContext, useState, useEffect } from "react"
 import type { User, AuthState } from "@/types/user"
 import { auth, db } from "@/lib/firebase"
-import {
-  signInWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged,
-  createUserWithEmailAndPassword,
-  updateProfile,
-  deleteUser as firebaseDeleteUser,
-  User as FirebaseUser,
-  sendPasswordResetEmail,
-  signInWithCustomToken,
-} from "firebase/auth"
+import { browserLocalPersistence, browserSessionPersistence, setPersistence, signInWithEmailAndPassword, onAuthStateChanged, createUserWithEmailAndPassword, updateProfile, signOut, sendPasswordResetEmail } from "firebase/auth"
 import {
   collection,
   doc,
@@ -37,13 +27,14 @@ function ensureDb() {
 }
 
 interface AuthContextType extends AuthState {
-  login: (email: string, password: string, rememberMe?: boolean) => Promise<boolean>
-  logout: () => void
-  addUser: (userData: Omit<User, "id" | "dateAdded">) => Promise<boolean>
-  getUsers: () => Promise<User[]>
-  updateUser: (userId: string, userData: Partial<User>) => Promise<boolean>
-  deleteUser: (userId: string) => Promise<boolean>
-  resetPassword: (email: string) => Promise<boolean>
+  loading: boolean;
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<boolean>;
+  logout: () => void;
+  addUser: (userData: Omit<User, "id" | "dateAdded">) => Promise<boolean>;
+  getUsers: () => Promise<User[]>;
+  updateUser: (userId: string, userData: Partial<User>) => Promise<boolean>;
+  deleteUser: (userId: string) => Promise<boolean>;
+  resetPassword: (email: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -88,6 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user: null,
     isAuthenticated: false,
   })
+  const [loading, setLoading] = useState(true)
 
   // Helper to map Firestore user doc to User type
   const mapFirestoreUser = (uid: string, data: any): User => ({
@@ -146,6 +138,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         setAuthState({ user: null, isAuthenticated: false })
       }
+      setLoading(false)
     })
     return () => unsubscribe()
   }, [])
@@ -223,10 +216,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Replace login with direct Firebase Auth login
   const login = async (email: string, password: string, rememberMe = false): Promise<boolean> => {
     try {
-      await signInWithEmailAndPassword(ensureAuth(), email, password)
-      return true
+      const persistence = rememberMe ? browserLocalPersistence : browserSessionPersistence;
+      await setPersistence(ensureAuth(), persistence);
+      await signInWithEmailAndPassword(ensureAuth(), email, password);
+      return true;
     } catch (error) {
-      return false
+      return false;
     }
   }
 
@@ -249,6 +244,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     <AuthContext.Provider
       value={{
         ...authState,
+        loading,
         login,
         logout,
         addUser,
