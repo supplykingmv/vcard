@@ -174,6 +174,12 @@ export function QRScannerDialog({ open, onOpenChange, onContactScanned }: QRScan
     return contact
   }
 
+  // Enhanced onOpenChange to always stop camera
+  const handleOpenChange = (open: boolean) => {
+    setShowCamera(false);
+    onOpenChange(open);
+  };
+
   const handleManualInput = () => {
     try {
       // Try to parse as vCard first
@@ -184,7 +190,7 @@ export function QRScannerDialog({ open, onOpenChange, onContactScanned }: QRScan
           setManualData("")
           setScanMode("manual")
           setShowCamera(false)
-          onOpenChange(false)
+          handleOpenChange(false)
           return
         }
       }
@@ -199,7 +205,7 @@ export function QRScannerDialog({ open, onOpenChange, onContactScanned }: QRScan
         setManualData("")
         setScanMode("manual")
         setShowCamera(false)
-        onOpenChange(false)
+        handleOpenChange(false)
       }
     } catch (error) {
       alert("Invalid contact data format. Please check your input.")
@@ -219,7 +225,7 @@ export function QRScannerDialog({ open, onOpenChange, onContactScanned }: QRScan
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold text-gray-900">Scan QR Code</DialogTitle>
@@ -319,7 +325,7 @@ export function QRScannerDialog({ open, onOpenChange, onContactScanned }: QRScan
                       setManualData("")
                       setScanMode("manual")
                       setShowCamera(false)
-                      onOpenChange(false)
+                      handleOpenChange(false)
                       try {
                         const contact = JSON.parse(text)
                         onContactScanned(contact)
@@ -354,7 +360,7 @@ export function QRScannerDialog({ open, onOpenChange, onContactScanned }: QRScan
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
+            <Button variant="outline" onClick={() => handleOpenChange(false)} className="flex-1">
               Cancel
             </Button>
             <Button
