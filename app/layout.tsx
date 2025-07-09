@@ -3,7 +3,6 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import ClientPage from "./page"
-import IOSStandaloneMeta from "../components/ios-standalone-meta"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -90,7 +89,7 @@ export default function RootLayout({
 }) {
   return (
     <ClientPage>
-      <IOSStandaloneMeta />
+      {/* <IOSStandaloneMeta /> */}
       {children}
     </ClientPage>
   )
