@@ -390,15 +390,5 @@ export default function ContactManager() {
     </div>
   )
 
-  return mounted && isMobile ? (
-    <PullToRefresh
-      onRefresh={handleRefresh}
-      className="min-h-screen"
-      resistance={2}
-      icon={<div className="text-green-600 text-xs py-2">↓ Pull to refresh</div>}
-      loading={<div className="flex justify-center py-4"><span className="w-6 h-6 border-2 border-green-400 border-t-transparent rounded-full animate-spin" /></div>}
-    >
-      {mainContent}
-    </PullToRefresh>
-  ) : mainContent
+  return mainContent
 }
