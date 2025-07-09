@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { getAuth, setPersistence, browserLocalPersistence, inMemoryPersistence } from "firebase/auth";
 import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, where, onSnapshot, serverTimestamp, setDoc } from "firebase/firestore";
 import type { Contact } from "@/types/contact";
 
@@ -15,6 +15,37 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+
+// Initialize Firebase Auth with local persistence for better iOS standalone app support
+// This ensures the user stays logged in across app restarts
+const initializeAuth = async () => {
+  try {
+    // Check if we're in a standalone app (iOS PWA)
+    const isStandalone = (window.navigator as any).standalone || 
+      (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+    
+    if (isStandalone) {
+      // For standalone apps, use local persistence to maintain login state
+      await setPersistence(auth, browserLocalPersistence);
+    } else {
+      // For regular browser, also use local persistence for "remember me" functionality
+      await setPersistence(auth, browserLocalPersistence);
+    }
+  } catch (error) {
+    console.warn('Failed to set auth persistence:', error);
+    // Fallback to in-memory persistence if local storage is not available
+    try {
+      await setPersistence(auth, inMemoryPersistence);
+    } catch (fallbackError) {
+      console.error('Failed to set fallback persistence:', fallbackError);
+    }
+  }
+};
+
+// Initialize auth persistence when the module loads
+if (typeof window !== 'undefined') {
+  initializeAuth();
+}
 
 export async function addContact(userId: string, contact: Omit<Contact, 'id' | 'dateAdded'>) {
   return await addDoc(collection(db, "contacts"), { ...contact, userId, dateAdded: new Date().toISOString() });

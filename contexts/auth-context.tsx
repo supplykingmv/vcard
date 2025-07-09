@@ -13,9 +13,6 @@ import {
   deleteUser as firebaseDeleteUser,
   User as FirebaseUser,
   sendPasswordResetEmail,
-  setPersistence,
-  browserLocalPersistence,
-  browserSessionPersistence,
 } from "firebase/auth"
 import {
   collection,
@@ -214,7 +211,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string, rememberMe = false): Promise<boolean> => {
     try {
-      await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence)
+      // Persistence is now set globally in firebase.ts
+      // The rememberMe parameter is kept for UI purposes but doesn't affect persistence
       await signInWithEmailAndPassword(auth, email, password)
       return true
     } catch (error) {
