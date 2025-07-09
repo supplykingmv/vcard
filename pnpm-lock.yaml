@@ -92,6 +92,9 @@ importers:
       '@radix-ui/react-tooltip':
         specifier: 1.1.6
         version: 1.1.6(@types/react-dom@18.3.7(@types/react@18.3.23))(@types/react@18.3.23)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+      '@zxing/browser':
+        specifier: ^0.1.5
+        version: 0.1.5(@zxing/library@0.18.6)
       autoprefixer:
         specifier: ^10.4.20
         version: 10.4.20(postcss@8.5.0)
@@ -149,6 +152,9 @@ importers:
       react-icons:
         specifier: ^5.5.0
         version: 5.5.0(react@18.2.0)
+      react-pull-to-refresh:
+        specifier: ^2.0.1
+        version: 2.0.1(react@18.2.0)
       react-qr-reader:
         specifier: ^3.0.0-beta-1
         version: 3.0.0-beta-1(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
@@ -1375,6 +1381,11 @@ packages:
     peerDependencies:
       '@zxing/library': ^0.18.3
 
+  '@zxing/browser@0.1.5':
+    resolution: {integrity: sha512-4Lmrn/il4+UNb87Gk8h1iWnhj39TASEHpd91CwwSJtY5u+wa0iH9qS0wNLAWbNVYXR66WmT5uiMhZ7oVTrKfxw==}
+    peerDependencies:
+      '@zxing/library': ^0.21.0
+
   '@zxing/library@0.18.6':
     resolution: {integrity: sha512-bulZ9JHoLFd9W36pi+7e7DnEYNJhljYjZ1UTsKPOoLMU3qtC+REHITeCRNx40zTRJZx18W5TBRXt5pq2Uopjsw==}
     engines: {node: '>= 10.4.0'}
@@ -1745,6 +1756,10 @@ packages:
   graceful-fs@4.2.11:
     resolution: {integrity: sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ==}
 
+  hammerjs@2.0.8:
+    resolution: {integrity: sha512-tSQXBXS/MWQOn/RKckawJ61vvsDpCom87JgxiYdGwHdOa0ht0vzUWDlfioofFCRU0L+6NGDt6XzbgoJvZkMeRQ==}
+    engines: {node: '>=0.8.0'}
+
   has-flag@4.0.0:
     resolution: {integrity: sha512-EykJT/Q1KjTWctppgIAgfSO0tKVuZUjhgMr17kqTumMl6Afv3EISleU7qZUzoXDFTAHTDC4NOoG/ZxU3EvlMPQ==}
     engines: {node: '>=8'}
@@ -2100,6 +2115,11 @@ packages:
 
   react-is@18.3.1:
     resolution: {integrity: sha512-/LLMVyas0ljjAtoYiPqYiL8VWXzUUdThrmU5+n20DZv+a+ClRoevUzw5JxU+Ieh5/c87ytoTBV9G1FiKfNJdmg==}
+
+  react-pull-to-refresh@2.0.1:
+    resolution: {integrity: sha512-mbNI9r3sBF4X+2fBO8c9CuXDLIywNuoZ24AIGU3Odi+L8C4MpS0tuhMQUSg5cSOuUtDFkE8Z/YnBYixo10QI6Q==}
+    peerDependencies:
+      react: '>=16.8.0'
 
   react-qr-reader@3.0.0-beta-1:
     resolution: {integrity: sha512-5HeFH9x/BlziRYQYGK2AeWS9WiKYZtGGMs9DXy3bcySTX3C9UJL9EwcPnWw8vlf7JP4FcrAlr1SnZ5nsWLQGyw==}
@@ -3714,6 +3734,12 @@ snapshots:
     optionalDependencies:
       '@zxing/text-encoding': 0.9.0
 
+  '@zxing/browser@0.1.5(@zxing/library@0.18.6)':
+    dependencies:
+      '@zxing/library': 0.18.6
+    optionalDependencies:
+      '@zxing/text-encoding': 0.9.0
+
   '@zxing/library@0.18.6':
     dependencies:
       ts-custom-error: 3.3.1
@@ -4124,6 +4150,8 @@ snapshots:
 
   graceful-fs@4.2.11: {}
 
+  hammerjs@2.0.8: {}
+
   has-flag@4.0.0: {}
 
   has-property-descriptors@1.0.2:
@@ -4453,6 +4481,11 @@ snapshots:
   react-is@16.13.1: {}
 
   react-is@18.3.1: {}
+
+  react-pull-to-refresh@2.0.1(react@18.2.0):
+    dependencies:
+      hammerjs: 2.0.8
+      react: 18.2.0
 
   react-qr-reader@3.0.0-beta-1(react-dom@18.2.0(react@18.2.0))(react@18.2.0):
     dependencies:
