@@ -17,7 +17,8 @@ import { HeaderNav } from "@/components/header-nav"
 import type { Contact } from "@/types/contact"
 import { useAuth } from "@/contexts/auth-context"
 import { addContact, updateContact, deleteContact, getContacts, subscribeToOnlineUsers, addNotification } from "@/lib/firebase"
-import PullToRefresh from 'react-pull-to-refresh'
+import dynamic from 'next/dynamic'
+const PullToRefresh = dynamic(() => import('react-pull-to-refresh'), { ssr: false })
 import { useIsMobile } from '@/components/ui/use-mobile'
 
 export type ViewType = "grid" | "list" | "cards" | "table"
@@ -25,6 +26,8 @@ export type ViewType = "grid" | "list" | "cards" | "table"
 export default function ContactManager() {
   const { user } = useAuth()
   const isMobile = useIsMobile()
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
   const [contacts, setContacts] = useState<Contact[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [showAddDialog, setShowAddDialog] = useState(false)
@@ -387,7 +390,7 @@ export default function ContactManager() {
     </div>
   )
 
-  return isMobile ? (
+  return mounted && isMobile ? (
     <PullToRefresh
       onRefresh={handleRefresh}
       className="min-h-screen"
