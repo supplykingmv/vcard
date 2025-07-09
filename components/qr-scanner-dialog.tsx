@@ -13,7 +13,7 @@ import dynamic from "next/dynamic"
 import { BrowserQRCodeReader } from '@zxing/browser'
 
 // QRCodeScanner component for camera mode
-function QRCodeScanner({ onScan, onError, deviceId }: { onScan: (text: string) => void, onError: (err: string) => void, deviceId?: string }) {
+function QRCodeScanner({ onScan, onError }: { onScan: (text: string) => void, onError: (err: string) => void }) {
   const videoRef = React.useRef<HTMLVideoElement>(null)
   const codeReaderRef = React.useRef<BrowserQRCodeReader | null>(null)
   React.useEffect(() => {
@@ -22,22 +22,23 @@ function QRCodeScanner({ onScan, onError, deviceId }: { onScan: (text: string) =
     let stop = false
     async function start() {
       try {
-        let selectedDeviceId = deviceId
-        if (typeof navigator !== 'undefined' && navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
-          const videoInputDevices = await BrowserQRCodeReader.listVideoInputDevices()
-          selectedDeviceId = deviceId || videoInputDevices[0]?.deviceId
-        }
-        await codeReader.decodeFromVideoDevice(selectedDeviceId, videoRef.current!, (result, err) => {
-          if (result) {
-            onScan(result.getText())
-            if ((codeReader as any).reset) (codeReader as any).reset()
-            else if ((codeReader as any).stopContinuousDecode) (codeReader as any).stopContinuousDecode()
-          } else if (err && err.message) {
-            if (!err.name.includes('NotFoundException')) {
-              onError(err.message)
+        // Always try to use environment camera
+        const constraints = { video: { facingMode: { exact: 'environment' } } }
+        await codeReader.decodeFromConstraints(
+          constraints,
+          videoRef.current!,
+          (result, err) => {
+            if (result) {
+              onScan(result.getText())
+              if ((codeReader as any).reset) (codeReader as any).reset()
+              else if ((codeReader as any).stopContinuousDecode) (codeReader as any).stopContinuousDecode()
+            } else if (err && err.message) {
+              if (!err.name.includes('NotFoundException')) {
+                onError(err.message)
+              }
             }
           }
-        })
+        )
       } catch (e: any) {
         onError(e.message || 'Camera error')
       }
@@ -50,7 +51,7 @@ function QRCodeScanner({ onScan, onError, deviceId }: { onScan: (text: string) =
         else if ((codeReaderRef.current as any).stopContinuousDecode) (codeReaderRef.current as any).stopContinuousDecode()
       }
     }
-  }, [deviceId])
+  }, [])
   return <video ref={videoRef} style={{ width: '100%', borderRadius: 12 }} />
 }
 
@@ -307,21 +308,7 @@ export function QRScannerDialog({ open, onOpenChange, onContactScanned }: QRScan
               <div className="space-y-2">
                 <Label>Scan QR Code</Label>
                 <div>
-                  {devices.length > 1 && (
-                    <select
-                      value={selectedDeviceId || devices[0]?.deviceId}
-                      onChange={(e) => setSelectedDeviceId(e.target.value)}
-                      style={{ marginBottom: 8 }}
-                    >
-                      {devices.map((device) => (
-                        <option key={device.deviceId} value={device.deviceId}>
-                          {device.label || `Camera ${device.deviceId}`}
-                        </option>
-                      ))}
-                    </select>
-                  )}
                   <QRCodeScanner
-                    deviceId={selectedDeviceId}
                     onScan={(text) => {
                       setCameraError(null)
                       setManualData("")
