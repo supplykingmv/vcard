@@ -327,7 +327,6 @@ export function QRScannerDialog({ open, onOpenChange, onContactScanned }: QRScan
                       setScanned(true);
                       setCameraError(null)
                       setManualData("")
-                      setShowCamera(false)
                       // Parse scanned data but do not create contact yet
                       let contact: any = null;
                       try {
@@ -337,7 +336,7 @@ export function QRScannerDialog({ open, onOpenChange, onContactScanned }: QRScan
                       }
                       if (contact && contact.name && contact.email) {
                         setScannedContact(contact);
-                        setScanMode("manual"); // force unmount camera
+                        setShowCamera(false); // Only close camera, do not change scanMode
                       } else {
                         setCameraError("Scanned QR code is not valid contact data.");
                       }
