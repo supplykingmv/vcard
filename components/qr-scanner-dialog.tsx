@@ -27,14 +27,12 @@ function QRCodeScanner({ onScan, onError, deviceId }: { onScan: (text: string) =
           const videoInputDevices = await BrowserQRCodeReader.listVideoInputDevices()
           selectedDeviceId = deviceId || videoInputDevices[0]?.deviceId
         }
-        // If enumerateDevices is not supported, selectedDeviceId may be undefined; fallback to default
         await codeReader.decodeFromVideoDevice(selectedDeviceId, videoRef.current!, (result, err) => {
           if (result) {
             onScan(result.getText())
-            if (typeof codeReader.reset === 'function') codeReader.reset()
-            else if (typeof codeReader.stopContinuousDecode === 'function') codeReader.stopContinuousDecode()
+            if ((codeReader as any).reset) (codeReader as any).reset()
+            else if ((codeReader as any).stopContinuousDecode) (codeReader as any).stopContinuousDecode()
           } else if (err && err.message) {
-            // Only show error if not NotFoundException (no QR in frame)
             if (!err.name.includes('NotFoundException')) {
               onError(err.message)
             }
@@ -48,8 +46,8 @@ function QRCodeScanner({ onScan, onError, deviceId }: { onScan: (text: string) =
     return () => {
       stop = true
       if (codeReaderRef.current) {
-        if (typeof codeReaderRef.current.reset === 'function') codeReaderRef.current.reset()
-        else if (typeof codeReaderRef.current.stopContinuousDecode === 'function') codeReaderRef.current.stopContinuousDecode()
+        if ((codeReaderRef.current as any).reset) (codeReaderRef.current as any).reset()
+        else if ((codeReaderRef.current as any).stopContinuousDecode) (codeReaderRef.current as any).stopContinuousDecode()
       }
     }
   }, [deviceId])
@@ -109,11 +107,16 @@ export function QRScannerDialog({ open, onOpenChange, onContactScanned }: QRScan
       notes: "",
       website: "",
       address: "",
+      emails: [],
+      phones: [],
     }
 
     lines.forEach((line) => {
-      const [key, value] = line.split(":")
+      if (!line.trim()) return
+      const [rawKey, ...rest] = line.split(":")
+      const value = rest.join(":").trim()
       if (!value) return
+      const key = rawKey.split(";")[0].toUpperCase()
 
       switch (key) {
         case "FN":
@@ -138,10 +141,10 @@ export function QRScannerDialog({ open, onOpenChange, onContactScanned }: QRScan
           contact.title = value
           break
         case "EMAIL":
-          contact.email = value
+          contact.emails.push(value)
           break
         case "TEL":
-          contact.phone = value
+          contact.phones.push(value)
           break
         case "NOTE":
           contact.notes = value
@@ -154,6 +157,10 @@ export function QRScannerDialog({ open, onOpenChange, onContactScanned }: QRScan
           break
       }
     })
+
+    // Use the first email/phone if available
+    if (contact.emails.length > 0) contact.email = contact.emails[0]
+    if (contact.phones.length > 0) contact.phone = contact.phones[0]
 
     return contact
   }
