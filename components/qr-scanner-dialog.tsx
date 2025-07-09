@@ -1,6 +1,6 @@
 "use client"
 
-import type React from "react"
+import * as React from "react"
 
 import { useState, useCallback, useEffect } from "react"
 import { Upload } from "lucide-react"
@@ -16,19 +16,23 @@ import { BrowserQRCodeReader } from '@zxing/browser'
 function QRCodeScanner({ onScan, onError, deviceId }: { onScan: (text: string) => void, onError: (err: string) => void, deviceId?: string }) {
   const videoRef = React.useRef<HTMLVideoElement>(null)
   const codeReaderRef = React.useRef<BrowserQRCodeReader | null>(null)
-  useEffect(() => {
+  React.useEffect(() => {
     const codeReader = new BrowserQRCodeReader()
     codeReaderRef.current = codeReader
     let stop = false
     async function start() {
       try {
-        const videoInputDevices = await BrowserQRCodeReader.listVideoInputDevices()
-        const selectedDeviceId = deviceId || videoInputDevices[0]?.deviceId
-        if (!selectedDeviceId) throw new Error('No camera device found.')
+        let selectedDeviceId = deviceId
+        if (typeof navigator !== 'undefined' && navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+          const videoInputDevices = await BrowserQRCodeReader.listVideoInputDevices()
+          selectedDeviceId = deviceId || videoInputDevices[0]?.deviceId
+        }
+        // If enumerateDevices is not supported, selectedDeviceId may be undefined; fallback to default
         await codeReader.decodeFromVideoDevice(selectedDeviceId, videoRef.current!, (result, err) => {
           if (result) {
             onScan(result.getText())
-            codeReader.reset()
+            if (typeof codeReader.reset === 'function') codeReader.reset()
+            else if (typeof codeReader.stopContinuousDecode === 'function') codeReader.stopContinuousDecode()
           } else if (err && err.message) {
             // Only show error if not NotFoundException (no QR in frame)
             if (!err.name.includes('NotFoundException')) {
@@ -43,7 +47,10 @@ function QRCodeScanner({ onScan, onError, deviceId }: { onScan: (text: string) =
     start()
     return () => {
       stop = true
-      codeReaderRef.current?.reset()
+      if (codeReaderRef.current) {
+        if (typeof codeReaderRef.current.reset === 'function') codeReaderRef.current.reset()
+        else if (typeof codeReaderRef.current.stopContinuousDecode === 'function') codeReaderRef.current.stopContinuousDecode()
+      }
     }
   }, [deviceId])
   return <video ref={videoRef} style={{ width: '100%', borderRadius: 12 }} />
@@ -64,6 +71,8 @@ export function QRScannerDialog({ open, onOpenChange, onContactScanned }: QRScan
   const [cameraError, setCameraError] = useState<string | null>(null)
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([])
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | undefined>(undefined)
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
 
   useEffect(() => {
     if (scanMode !== "camera" || !open) {
@@ -75,12 +84,18 @@ export function QRScannerDialog({ open, onOpenChange, onContactScanned }: QRScan
 
   // Fetch available video input devices when camera is requested
   useEffect(() => {
+    if (!mounted) return
     if (showCamera) {
-      navigator.mediaDevices?.enumerateDevices?.().then((allDevices) => {
+      if (typeof navigator === 'undefined' || !navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+        setCameraError('Camera device enumeration is not supported in this browser. Try using the latest Safari or Chrome, or use file upload/manual entry.')
+        setDevices([])
+        return
+      }
+      navigator.mediaDevices.enumerateDevices().then((allDevices) => {
         setDevices(allDevices.filter((d) => d.kind === "videoinput"))
       })
     }
-  }, [showCamera])
+  }, [showCamera, mounted])
 
   const parseVCard = (vCardData: string) => {
     const lines = vCardData.split("\n")
@@ -271,7 +286,7 @@ export function QRScannerDialog({ open, onOpenChange, onContactScanned }: QRScan
           )}
 
           {/* Camera Scan Mode */}
-          {scanMode === "camera" && (
+          {scanMode === "camera" && mounted && (
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label>Scan QR Code</Label>
