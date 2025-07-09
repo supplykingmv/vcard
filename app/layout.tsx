@@ -3,12 +3,62 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import ClientPage from "./page"
+import IOSStandaloneMeta from "../components/ios-standalone-meta"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "Contact Manager - CM",
   description: "Manage your business cards and contacts with ease",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Contact Manager",
+    startupImage: [
+      {
+        url: "/logo.png",
+        media: "(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)"
+      },
+      {
+        url: "/logo.png",
+        media: "(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)"
+      },
+      {
+        url: "/logo.png",
+        media: "(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)"
+      },
+      {
+        url: "/logo.png",
+        media: "(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)"
+      },
+      {
+        url: "/logo.png",
+        media: "(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)"
+      },
+      {
+        url: "/logo.png",
+        media: "(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)"
+      }
+    ]
+  },
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+    viewportFit: "cover"
+  },
+  other: {
+    "mobile-web-app-capable": "yes",
+    "apple-mobile-web-app-capable": "yes",
+    "apple-mobile-web-app-status-bar-style": "default",
+    "apple-mobile-web-app-title": "Contact Manager",
+    "application-name": "Contact Manager",
+    "msapplication-TileColor": "#22c55e",
+    "msapplication-config": "/browserconfig.xml",
+    "theme-color": "#22c55e"
+  },
   icons: {
     icon: [
       {
@@ -38,5 +88,10 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  return <ClientPage>{children}</ClientPage>
+  return (
+    <ClientPage>
+      <IOSStandaloneMeta />
+      {children}
+    </ClientPage>
+  )
 }
