@@ -17,11 +17,14 @@ import { HeaderNav } from "@/components/header-nav"
 import type { Contact } from "@/types/contact"
 import { useAuth } from "@/contexts/auth-context"
 import { addContact, updateContact, deleteContact, getContacts, subscribeToOnlineUsers, addNotification } from "@/lib/firebase"
+import PullToRefresh from 'react-pull-to-refresh'
+import { useIsMobile } from '@/components/ui/use-mobile'
 
 export type ViewType = "grid" | "list" | "cards" | "table"
 
 export default function ContactManager() {
   const { user } = useAuth()
+  const isMobile = useIsMobile()
   const [contacts, setContacts] = useState<Contact[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [showAddDialog, setShowAddDialog] = useState(false)
@@ -184,7 +187,14 @@ export default function ContactManager() {
     )
   }
 
-  return (
+  // Add a refresh handler
+  const handleRefresh = async () => {
+    if (user) {
+      setContacts(await getContacts({ id: user.id, role: user.role }))
+    }
+  }
+
+  const mainContent = (
     <div className="min-h-screen relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #e6f9f0 0%, #d1fae5 50%, #fff 100%)' }}>
       {/* White gradient overlay */}
       <div style={{
@@ -376,4 +386,16 @@ export default function ContactManager() {
       />
     </div>
   )
+
+  return isMobile ? (
+    <PullToRefresh
+      onRefresh={handleRefresh}
+      className="min-h-screen"
+      resistance={2}
+      icon={<div className="text-green-600 text-xs py-2">↓ Pull to refresh</div>}
+      loading={<div className="flex justify-center py-4"><span className="w-6 h-6 border-2 border-green-400 border-t-transparent rounded-full animate-spin" /></div>}
+    >
+      {mainContent}
+    </PullToRefresh>
+  ) : mainContent
 }
