@@ -245,10 +245,12 @@ export default function ContactManager() {
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Logo size="lg" />
+              <Logo size="lg" className="rounded-xl w-10 h-10 sm:w-15 sm:h-15" />
               <div>
-                <h1 className="text-3xl md:text-4xl font-bold text-gray-800">Contact Manager</h1>
-                <p className="text-gray-600">Manage your business cards and contacts with ease</p>
+                <h1 className="text-xl sm:text-2xl md:text-4xl font-bold text-gray-800 leading-tight">Contact Manager</h1>
+                <p className="text-[11px] sm:text-xs md:text-sm text-gray-600 leading-snug">
+                  Manage your business cards and<br />contacts with ease
+                </p>
               </div>
             </div>
 

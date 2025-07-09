@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import ClientPage from "./page"
+import IOSStandaloneMeta from "@/components/ios-standalone-meta"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -88,9 +89,16 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <ClientPage>
-      {/* <IOSStandaloneMeta /> */}
-      {children}
-    </ClientPage>
+    <html lang="en" suppressHydrationWarning>
+      <IOSStandaloneMeta />
+      <body className={inter.className}>
+        {/* <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange> */}
+        {/* <AuthProvider> */}
+        {/* <AuthWrapper>{children}</AuthWrapper> */}
+        {/* </AuthProvider> */}
+        {/* </ThemeProvider> */}
+        {children}
+      </body>
+    </html>
   )
 }
