@@ -2,6 +2,8 @@ import { initializeApp } from "firebase/app";
 import { getAuth, setPersistence, browserLocalPersistence, inMemoryPersistence } from "firebase/auth";
 import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, where, onSnapshot, serverTimestamp, setDoc } from "firebase/firestore";
 import type { Contact } from "@/types/contact";
+import type { Auth } from "firebase/auth";
+import type { Firestore } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAqpfMTmMNL-R28m-V4Wl4ple--wjx79dE",
@@ -12,47 +14,46 @@ const firebaseConfig = {
   appId: "1:225237882140:web:b243e3a06d8d5f4c4496d9"
 };
 
-const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-
-// Initialize Firebase Auth with local persistence for better iOS standalone app support
-// This ensures the user stays logged in across app restarts
-const initializeAuth = async () => {
-  try {
-    // Check if we're in a standalone app (iOS PWA)
-    const isStandalone = (window.navigator as any).standalone || 
-      (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
-    
-    if (isStandalone) {
-      // For standalone apps, use local persistence to maintain login state
-      await setPersistence(auth, browserLocalPersistence);
-    } else {
-      // For regular browser, also use local persistence for "remember me" functionality
-      await setPersistence(auth, browserLocalPersistence);
-    }
-  } catch (error) {
-    console.warn('Failed to set auth persistence:', error);
-    // Fallback to in-memory persistence if local storage is not available
-    try {
-      await setPersistence(auth, inMemoryPersistence);
-    } catch (fallbackError) {
-      console.error('Failed to set fallback persistence:', fallbackError);
-    }
-  }
-};
-
-// Initialize auth persistence when the module loads
+let app: ReturnType<typeof initializeApp> | undefined;
+let auth: Auth | undefined;
+let db: Firestore | undefined;
 if (typeof window !== 'undefined') {
+  app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  db = getFirestore(app);
+  // Initialize Firebase Auth with local persistence for better iOS standalone app support
+  // This ensures the user stays logged in across app restarts
+  const initializeAuth = async () => {
+    try {
+      if (!auth) throw new Error('Firebase Auth is not initialized.');
+      // Check if we're in a standalone app (iOS PWA)
+      const isStandalone = (window.navigator as any).standalone || 
+        (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+      await setPersistence(auth, browserLocalPersistence);
+    } catch (error) {
+      console.warn('Failed to set auth persistence:', error);
+      // Fallback to in-memory persistence if local storage is not available
+      try {
+        if (auth) await setPersistence(auth, inMemoryPersistence);
+      } catch (fallbackError) {
+        console.error('Failed to set fallback persistence:', fallbackError);
+      }
+    }
+  };
   initializeAuth();
+}
+export { auth, db };
+
+function ensureDb() {
+  if (!db) throw new Error("Firestore is not initialized. This must be called from the browser.");
+  return db;
 }
 
 export async function addContact(userId: string, contact: Omit<Contact, 'id' | 'dateAdded'>) {
-  return await addDoc(collection(db, "contacts"), { ...contact, userId, dateAdded: new Date().toISOString() });
+  return await addDoc(collection(ensureDb(), "contacts"), { ...contact, userId, dateAdded: new Date().toISOString() });
 }
 
 export async function updateContact(contactId: string, contact: Partial<Contact>) {
-  // Ensure dateAdded is serialized if present and valid
   const contactToUpdate: any = { ...contact };
   if (
     contactToUpdate.dateAdded instanceof Date &&
@@ -65,20 +66,18 @@ export async function updateContact(contactId: string, contact: Partial<Contact>
   ) {
     // Already a valid ISO string, do nothing
   } else {
-    // Remove or ignore invalid date
     delete contactToUpdate.dateAdded;
   }
-  return await updateDoc(doc(db, "contacts", contactId), contactToUpdate);
+  return await updateDoc(doc(ensureDb(), "contacts", contactId), contactToUpdate);
 }
 
 export async function deleteContact(contactId: string) {
-  return await deleteDoc(doc(db, "contacts", contactId));
+  return await deleteDoc(doc(ensureDb(), "contacts", contactId));
 }
 
 export async function getContacts(user: { id: string, role: string }): Promise<Contact[]> {
   if (["admin", "editor", "viewer", "superadmin"].includes(user.role)) {
-    // Fetch all contacts
-    const snap = await getDocs(collection(db, "contacts"));
+    const snap = await getDocs(collection(ensureDb(), "contacts"));
     return snap.docs.map(docSnap => {
       const data = docSnap.data();
       return {
@@ -88,8 +87,7 @@ export async function getContacts(user: { id: string, role: string }): Promise<C
       } as Contact;
     });
   } else {
-    // Fetch only own contacts
-    const q = query(collection(db, "contacts"), where("userId", "==", user.id));
+    const q = query(collection(ensureDb(), "contacts"), where("userId", "==", user.id));
     const snap = await getDocs(q);
     return snap.docs.map(docSnap => {
       const data = docSnap.data();
@@ -103,22 +101,21 @@ export async function getContacts(user: { id: string, role: string }): Promise<C
 }
 
 export async function setUserOnline(userId: string) {
-  await setDoc(doc(db, "presence", userId), { online: true, lastActive: serverTimestamp() }, { merge: true });
+  await setDoc(doc(ensureDb(), "presence", userId), { online: true, lastActive: serverTimestamp() }, { merge: true });
 }
 
 export async function setUserOffline(userId: string) {
-  await setDoc(doc(db, "presence", userId), { online: false, lastActive: serverTimestamp() }, { merge: true });
+  await setDoc(doc(ensureDb(), "presence", userId), { online: false, lastActive: serverTimestamp() }, { merge: true });
 }
 
 export function subscribeToOnlineUsers(callback: (users: { userId: string, lastActive: any }[]) => void) {
-  return onSnapshot(query(collection(db, "presence"), where("online", "==", true)), (snap) => {
+  return onSnapshot(query(collection(ensureDb(), "presence"), where("online", "==", true)), (snap) => {
     callback(snap.docs.map(docSnap => ({ userId: docSnap.id, lastActive: docSnap.data().lastActive })))
   })
 }
 
-// Notification helpers
 export async function addNotification(notification: { message: string, senderId: string, senderName: string, type?: string, excludeUserIds?: string[] }) {
-  const docRef = await addDoc(collection(db, "notifications"), {
+  const docRef = await addDoc(collection(ensureDb(), "notifications"), {
     ...notification,
     createdAt: new Date().toISOString(),
   })
@@ -126,7 +123,7 @@ export async function addNotification(notification: { message: string, senderId:
 }
 
 export async function getNotifications(limitCount = 20) {
-  const snap = await getDocs(collection(db, "notifications"))
+  const snap = await getDocs(collection(ensureDb(), "notifications"))
   return snap.docs
     .map(docSnap => ({ id: docSnap.id, ...docSnap.data() }))
     .sort((a, b) => {
@@ -138,7 +135,7 @@ export async function getNotifications(limitCount = 20) {
 }
 
 export function subscribeToNotifications(callback: (notifications: any[]) => void) {
-  return onSnapshot(collection(db, "notifications"), (snap) => {
+  return onSnapshot(collection(ensureDb(), "notifications"), (snap) => {
     const notifs = snap.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }))
     callback(notifs.sort((a, b) => {
       const aDate = (a as any).createdAt ? new Date((a as any).createdAt).getTime() : 0;
