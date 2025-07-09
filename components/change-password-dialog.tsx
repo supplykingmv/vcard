@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/contexts/auth-context"
 import { auth } from "@/lib/firebase"
-import { updatePassword } from "firebase/auth"
+import { updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth"
 import { Eye, EyeOff, Save } from "lucide-react"
 
 interface ChangePasswordDialogProps {
@@ -48,6 +48,9 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
     try {
       // Update password in Firebase Auth
       if (!auth || !auth.currentUser) throw new Error('Auth is not initialized.');
+      // Re-authenticate user
+      const credential = EmailAuthProvider.credential(auth.currentUser.email || '', currentPassword)
+      await reauthenticateWithCredential(auth.currentUser, credential)
       await updatePassword(auth.currentUser, newPassword)
       setSuccess(true)
       setCurrentPassword("")
@@ -59,7 +62,11 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
         alert("Password changed successfully. Please sign in again with your new password.")
       }, 1200)
     } catch (err) {
-      setError("Failed to change password. Please try again.")
+      if ((err as any)?.code === 'auth/wrong-password') {
+        setError("Current password is incorrect.")
+      } else {
+        setError("Failed to change password. Please try again.")
+      }
     }
     setLoading(false)
   }
