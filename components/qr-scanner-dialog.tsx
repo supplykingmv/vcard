@@ -80,6 +80,11 @@ export function QRScannerDialog({ open, onOpenChange, onContactScanned }: QRScan
     }
   }, [scanMode, open])
 
+  // Clear manualData when dialog is closed
+  useEffect(() => {
+    if (!open) setManualData("")
+  }, [open])
+
   // Fetch available video input devices when camera is requested
   useEffect(() => {
     if (!mounted) return
