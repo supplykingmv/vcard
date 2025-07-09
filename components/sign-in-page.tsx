@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect } from "react"
 import { Eye, EyeOff, LogIn } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -11,7 +10,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Logo } from "@/components/logo"
 import { useAuth } from "@/contexts/auth-context"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
-
 export function SignInPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -25,7 +23,6 @@ export function SignInPage() {
   const [resetLoading, setResetLoading] = useState(false)
 
   const { login, resetPassword } = useAuth()
-
   useEffect(() => {
     const remembered = localStorage.getItem("rememberedEmail")
     if (remembered) {
@@ -114,6 +111,8 @@ export function SignInPage() {
                 <Input
                   id="email"
                   type="email"
+                  autoCapitalize="none"
+                  autoCorrect="off"
                   placeholder="Enter your email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -128,6 +127,8 @@ export function SignInPage() {
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
+                    autoCapitalize="none"
+                    autoCorrect="off"
                     placeholder="Enter your password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}

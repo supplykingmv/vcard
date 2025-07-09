@@ -27,6 +27,15 @@ import {
   where,
 } from "firebase/firestore"
 
+function ensureAuth() {
+  if (!auth) throw new Error("Firebase Auth is not initialized. This must be called from the browser.");
+  return auth;
+}
+function ensureDb() {
+  if (!db) throw new Error("Firestore is not initialized. This must be called from the browser.");
+  return db;
+}
+
 interface AuthContextType extends AuthState {
   login: (email: string, password: string, rememberMe?: boolean) => Promise<boolean>
   logout: () => void
@@ -97,21 +106,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     title: data.title || "",
   })
 
-  // Restore session on mount
+  // Remove session restore via /api/session
   useEffect(() => {
-    fetch("/api/session", { method: "POST", credentials: "include" })
-      .then(res => res.json())
-      .then(async data => {
-        if (data.customToken) {
-          await signInWithCustomToken(auth, data.customToken)
-        }
-      })
-      .catch(() => {})
-    // Listen for auth state changes
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    // Listen for auth state changes only
+    const unsubscribe = onAuthStateChanged(ensureAuth(), async (firebaseUser) => {
       if (firebaseUser) {
         // Fetch user metadata from Firestore
-        const userDoc = await getDoc(doc(db, "users", firebaseUser.uid))
+        const userDoc = await getDoc(doc(ensureDb(), "users", firebaseUser.uid))
         let user: User
         if (userDoc.exists()) {
           user = mapFirestoreUser(firebaseUser.uid, userDoc.data())
@@ -127,7 +128,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             isActive: true,
             clearedNotifications: [],
           }
-          await setDoc(doc(db, "users", firebaseUser.uid), {
+          await setDoc(doc(ensureDb(), "users", firebaseUser.uid), {
             email: user.email,
             role: user.role,
             name: user.name,
@@ -153,9 +154,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const addUser = async (userData: Omit<User, "id" | "dateAdded">): Promise<boolean> => {
     if (authState.user?.role !== "superadmin" && authState.user?.role !== "admin") return false
     try {
-      const cred = await createUserWithEmailAndPassword(auth, userData.email, userData.password)
+      const cred = await createUserWithEmailAndPassword(ensureAuth(), userData.email, userData.password)
       await updateProfile(cred.user, { displayName: userData.name })
-      await setDoc(doc(db, "users", cred.user.uid), {
+      await setDoc(doc(ensureDb(), "users", cred.user.uid), {
         email: userData.email,
         role: userData.role,
         name: userData.name,
@@ -177,7 +178,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Get all users (admin only)
   const getUsers = async (): Promise<User[]> => {
     if (authState.user?.role !== "superadmin" && authState.user?.role !== "admin") return []
-    const snap = await getDocs(collection(db, "users"))
+    const snap = await getDocs(collection(ensureDb(), "users"))
     return snap.docs.map(docSnap => mapFirestoreUser(docSnap.id, docSnap.data()))
   }
 
@@ -189,7 +190,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       authState.user?.id !== userId
     ) return false
     try {
-      const userRef = doc(db, "users", userId)
+      const userRef = doc(ensureDb(), "users", userId)
       await updateDoc(userRef, userData)
       // If updating self, update local state
       if (authState.user?.id === userId) {
@@ -211,7 +212,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const deleteUser = async (userId: string): Promise<boolean> => {
     if ((authState.user?.role !== "superadmin" && authState.user?.role !== "admin") || userId === authState.user.id) return false
     try {
-      await deleteDoc(doc(db, "users", userId))
+      await deleteDoc(doc(ensureDb(), "users", userId))
       // Optionally, also delete from Auth (requires admin privileges on backend)
       return true
     } catch (e) {
@@ -219,17 +220,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  // Replace login with session-based login
+  // Replace login with direct Firebase Auth login
   const login = async (email: string, password: string, rememberMe = false): Promise<boolean> => {
     try {
-      const res = await fetch("/api/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-        credentials: "include",
-      })
-      if (!res.ok) return false
-      // Optionally, use idToken from response if needed
+      await signInWithEmailAndPassword(ensureAuth(), email, password)
       return true
     } catch (error) {
       return false
@@ -239,12 +233,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Replace logout with session-based logout
   const logout = async () => {
     await fetch("/api/logout", { method: "POST", credentials: "include" })
-    await signOut(auth)
+    await signOut(ensureAuth())
   }
 
   const resetPassword = async (email: string): Promise<boolean> => {
     try {
-      await sendPasswordResetEmail(auth, email)
+      await sendPasswordResetEmail(ensureAuth(), email)
       return true
     } catch (e) {
       return false
