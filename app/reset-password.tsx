@@ -28,6 +28,11 @@ export default function ResetPasswordPage() {
       setLoading(false)
       return
     }
+    if (!auth) {
+      setError("Auth is not initialized.")
+      setLoading(false)
+      return
+    }
     verifyPasswordResetCode(auth, oobCode)
       .then(setEmail)
       .catch(() => {
@@ -39,6 +44,10 @@ export default function ResetPasswordPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
+    if (!auth) {
+      setError("Auth is not initialized.")
+      return
+    }
     try {
       await confirmPasswordReset(auth, oobCode, password)
       setSuccess(true)
@@ -79,6 +88,8 @@ export default function ResetPasswordPage() {
             <div className="relative">
               <Input
                 type={showPassword ? "text" : "password"}
+                autoCapitalize="none"
+                autoCorrect="off"
                 className="w-full bg-white/60 pr-10 text-lg"
                 value={password}
                 onChange={e => setPassword(e.target.value)}

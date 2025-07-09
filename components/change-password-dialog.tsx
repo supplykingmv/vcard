@@ -47,6 +47,7 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
     setLoading(true)
     try {
       // Update password in Firebase Auth
+      if (!auth || !auth.currentUser) throw new Error('Auth is not initialized.');
       await updatePassword(auth.currentUser, newPassword)
       setSuccess(true)
       setCurrentPassword("")
@@ -76,6 +77,8 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
             <div className="relative">
               <Input
                 type={showCurrent ? "text" : "password"}
+                autoCapitalize="none"
+                autoCorrect="off"
                 value={currentPassword}
                 onChange={e => setCurrentPassword(e.target.value)}
                 placeholder="Enter current password"
@@ -100,6 +103,8 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
             <div className="relative">
               <Input
                 type={showNew ? "text" : "password"}
+                autoCapitalize="none"
+                autoCorrect="off"
                 value={newPassword}
                 onChange={e => setNewPassword(e.target.value)}
                 placeholder="Enter new password"
@@ -124,6 +129,8 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
             <label className="block mb-1 text-xs font-medium text-gray-700">Confirm New Password</label>
             <Input
               type="password"
+              autoCapitalize="none"
+              autoCorrect="off"
               value={confirmPassword}
               onChange={e => setConfirmPassword(e.target.value)}
               placeholder="Confirm new password"
