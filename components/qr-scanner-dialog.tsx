@@ -18,15 +18,40 @@ function QRCodeScanner({ onScan, onError }: { onScan: (text: string) => void, on
     console.log("QrReader mounted");
   }, []);
 
+  const fatalCameraErrors = [
+    "NotAllowedError",
+    "NotReadableError",
+    "OverconstrainedError",
+    "StreamApiNotSupportedError",
+    "NotFoundError",
+    "NotSupportedError",
+    "AbortError",
+    "SecurityError",
+    "TypeError"
+  ];
+
   const handleResult = (result: any, error: any) => {
     if (result?.text) {
       onScan(result.text);
     } else if (
       error &&
-      !["NotFoundException", "NoMultiFormatReadersException", "NotAllowedError", "NotReadableError", "OverconstrainedError", "StreamApiNotSupportedError"].includes(error.name)
+      (
+        fatalCameraErrors.includes(error.name) ||
+        (typeof error.message === "string" && (
+          error.message.toLowerCase().includes("permission") ||
+          error.message.toLowerCase().includes("not allowed") ||
+          error.message.toLowerCase().includes("not readable") ||
+          error.message.toLowerCase().includes("not found") ||
+          error.message.toLowerCase().includes("not supported") ||
+          error.message.toLowerCase().includes("abort") ||
+          error.message.toLowerCase().includes("security") ||
+          error.message.toLowerCase().includes("typeerror")
+        ))
+      )
     ) {
       onError(error.message || 'Camera error');
     }
+    // Otherwise, ignore the error (likely just no QR code found in frame)
   };
 
   return (
