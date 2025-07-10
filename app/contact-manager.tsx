@@ -43,16 +43,40 @@ export default function ContactManager() {
   const [manualData, setManualData] = useState<string>("")
   const [scanMode, setScanMode] = useState<string>("")
   const [cameraError, setCameraError] = useState<string>("")
+  const [contactsLoading, setContactsLoading] = useState(false);
+  const [contactsLoadingPercent, setContactsLoadingPercent] = useState(0);
+
+  // Animate loading percent
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (contactsLoading) {
+      setContactsLoadingPercent(0);
+      interval = setInterval(() => {
+        setContactsLoadingPercent((prev) => {
+          if (prev < 95) return prev + 5;
+          return prev;
+        });
+      }, 50);
+    } else {
+      setContactsLoadingPercent(100);
+    }
+    return () => clearInterval(interval);
+  }, [contactsLoading]);
 
   // Load contacts from Firestore on mount and when user changes
   useEffect(() => {
     if (user) {
-      getContacts({ id: user.id, role: user.role }).then(setContacts)
+      setContactsLoading(true);
+      getContacts({ id: user.id, role: user.role }).then((data) => {
+        setContacts(data);
+        setContactsLoading(false);
+        setContactsLoadingPercent(100);
+      });
       // Subscribe to online users
       const unsub = subscribeToOnlineUsers(setOnlineUsers)
       return () => unsub()
     }
-  }, [user])
+  }, [user]);
 
   const filteredAndSortedContacts = contacts
     .filter((contact) => {
@@ -199,6 +223,13 @@ export default function ContactManager() {
 
   const mainContent = (
     <div className="min-h-screen relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #e6f9f0 0%, #d1fae5 50%, #fff 100%)' }}>
+      {/* Loader Overlay */}
+      {contactsLoading && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm">
+          <div className="text-2xl font-bold text-green-700 mb-2 animate-pulse">Updating Records</div>
+          <div className="text-lg text-gray-700">{contactsLoadingPercent}%</div>
+        </div>
+      )}
       {/* White gradient overlay */}
       <div style={{
         position: 'absolute',

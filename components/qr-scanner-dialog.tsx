@@ -21,7 +21,7 @@ function QRCodeScanner({ onScan, onError }: { onScan: (text: string) => void, on
   const handleResult = (result: any, error: any) => {
     if (result?.text) {
       onScan(result.text);
-    } else if (error) {
+    } else if (error && error.name !== "NotFoundException") {
       onError(error.message || 'Camera error');
     }
   };
