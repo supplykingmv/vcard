@@ -10,6 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Logo } from "@/components/logo"
 import { useAuth } from "@/contexts/auth-context"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { BrandedLoader } from "./BrandedLoader";
+
 export function SignInPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -21,6 +23,7 @@ export function SignInPage() {
   const [resetEmail, setResetEmail] = useState("")
   const [resetStatus, setResetStatus] = useState<string | null>(null)
   const [resetLoading, setResetLoading] = useState(false)
+  const [showLoader, setShowLoader] = useState(false);
 
   const { login, resetPassword } = useAuth()
   useEffect(() => {
@@ -46,6 +49,9 @@ export function SignInPage() {
       const success = await login(email, password, rememberMe)
       if (!success) {
         setError("Invalid email or password")
+      } else {
+        setShowLoader(true)
+        setTimeout(() => setShowLoader(false), 1200) // Simulate loading before main screen
       }
     } catch (error) {
       setError("An error occurred. Please try again.")
@@ -68,6 +74,8 @@ export function SignInPage() {
     setResetStatus(ok ? "A password reset email has been sent if the address exists." : "Failed to send reset email. Please check the address and try again.")
     setResetLoading(false)
   }
+
+  if (showLoader) return <BrandedLoader text="Loading..." />;
 
   return (
     <div

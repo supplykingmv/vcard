@@ -21,7 +21,10 @@ function QRCodeScanner({ onScan, onError }: { onScan: (text: string) => void, on
   const handleResult = (result: any, error: any) => {
     if (result?.text) {
       onScan(result.text);
-    } else if (error && error.name !== "NotFoundException") {
+    } else if (
+      error &&
+      !["NotFoundException", "NoMultiFormatReadersException", "NotAllowedError", "NotReadableError", "OverconstrainedError", "StreamApiNotSupportedError"].includes(error.name)
+    ) {
       onError(error.message || 'Camera error');
     }
   };
