@@ -14,25 +14,29 @@ import { BrowserQRCodeReader } from '@zxing/browser'
 
 // QRCodeScanner component for camera mode using react-qr-reader
 function QRCodeScanner({ onScan, onError }: { onScan: (text: string) => void, onError: (err: string) => void }) {
-  const handleScan = (data: string | null) => {
-    if (data) {
-      onScan(data)
-      // Camera will be stopped by the parent component after scan
-    }
-  }
+  React.useEffect(() => {
+    console.log("QrReader mounted");
+  }, []);
 
-  const handleError = (err: any) => {
-    onError(err?.message || 'Camera error')
-  }
+  const handleResult = (result: any, error: any) => {
+    if (result?.text) {
+      onScan(result.text);
+    } else if (error) {
+      onError(error.message || 'Camera error');
+    }
+  };
 
   return (
     <div style={{ width: '100%', borderRadius: 12 }}>
       <QrReader
-        onScan={handleScan}
-        onError={handleError}
+        onResult={handleResult}
+        constraints={{ facingMode: 'environment' }}
       />
+      <noscript>
+        <div style={{ color: 'red', marginTop: 8 }}>Camera not available or permission denied.</div>
+      </noscript>
     </div>
-  )
+  );
 }
 
 interface QRScannerDialogProps {
