@@ -12,47 +12,33 @@ import type { Contact } from "@/types/contact"
 import dynamic from "next/dynamic"
 import { BrowserQRCodeReader } from '@zxing/browser'
 
-// QRCodeScanner component for camera mode
+// QRCodeScanner component for camera mode using react-qr-reader
 function QRCodeScanner({ onScan, onError }: { onScan: (text: string) => void, onError: (err: string) => void }) {
-  const videoRef = React.useRef<HTMLVideoElement>(null)
-  const codeReaderRef = React.useRef<BrowserQRCodeReader | null>(null)
-  React.useEffect(() => {
-    const codeReader = new BrowserQRCodeReader()
-    codeReaderRef.current = codeReader
-    let stop = false
-    async function start() {
-      try {
-        // Always try to use environment camera
-        const constraints = { video: { facingMode: { exact: 'environment' } } }
-        await codeReader.decodeFromConstraints(
-          constraints,
-          videoRef.current!,
-          (result, err) => {
-            if (result) {
-              onScan(result.getText())
-              if ((codeReader as any).reset) (codeReader as any).reset()
-              else if ((codeReader as any).stopContinuousDecode) (codeReader as any).stopContinuousDecode()
-            } else if (err && err.message) {
-              if (!err.name.includes('NotFoundException')) {
-                onError(err.message)
-              }
-            }
-          }
-        )
-      } catch (e: any) {
-        onError(e.message || 'Camera error')
+  const scannerRef = React.useRef<any>(null)
+
+  const handleScan = (data: string | null) => {
+    if (data) {
+      onScan(data)
+      // Stop camera after successful scan
+      if (scannerRef.current && scannerRef.current.stopCamera) {
+        scannerRef.current.stopCamera()
       }
     }
-    start()
-    return () => {
-      stop = true
-      if (codeReaderRef.current) {
-        if ((codeReaderRef.current as any).reset) (codeReaderRef.current as any).reset()
-        else if ((codeReaderRef.current as any).stopContinuousDecode) (codeReaderRef.current as any).stopContinuousDecode()
-      }
-    }
-  }, [])
-  return <video ref={videoRef} style={{ width: '100%', borderRadius: 12 }} />
+  }
+
+  const handleError = (err: any) => {
+    onError(err?.message || 'Camera error')
+  }
+
+  return (
+    <QrReader
+      ref={scannerRef}
+      delay={300}
+      onScan={handleScan}
+      onError={handleError}
+      style={{ width: '100%', borderRadius: 12 }}
+    />
+  )
 }
 
 interface QRScannerDialogProps {
