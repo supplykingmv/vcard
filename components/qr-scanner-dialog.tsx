@@ -14,15 +14,10 @@ import { BrowserQRCodeReader } from '@zxing/browser'
 
 // QRCodeScanner component for camera mode using react-qr-reader
 function QRCodeScanner({ onScan, onError }: { onScan: (text: string) => void, onError: (err: string) => void }) {
-  const scannerRef = React.useRef<any>(null)
-
   const handleScan = (data: string | null) => {
     if (data) {
       onScan(data)
-      // Stop camera after successful scan
-      if (scannerRef.current && scannerRef.current.stopCamera) {
-        scannerRef.current.stopCamera()
-      }
+      // Camera will be stopped by the parent component after scan
     }
   }
 
@@ -31,13 +26,12 @@ function QRCodeScanner({ onScan, onError }: { onScan: (text: string) => void, on
   }
 
   return (
-    <QrReader
-      ref={scannerRef}
-      delay={300}
-      onScan={handleScan}
-      onError={handleError}
-      style={{ width: '100%', borderRadius: 12 }}
-    />
+    <div style={{ width: '100%', borderRadius: 12 }}>
+      <QrReader
+        onScan={handleScan}
+        onError={handleError}
+      />
+    </div>
   )
 }
 
@@ -307,29 +301,59 @@ export function QRScannerDialog({ open, onOpenChange, onContactScanned }: QRScan
               <div className="space-y-2">
                 <Label>Scan QR Code</Label>
                 <div>
-                  <QRCodeScanner
-                    onScan={(text) => {
-                      if (scanned) return;
-                      setScanned(true);
-                      setCameraError(null)
-                      setManualData(text); // Place scanned data in manual input
-                      setShowCamera(false); // Close camera
-                      setScanMode("manual"); // Switch to manual input for review/edit
-                    }}
-                    onError={(err) => {
-                      if (err.includes('denied')) {
-                        setCameraError('Camera access denied. Please allow camera permissions in your browser settings.');
-                      } else if (err.includes('not found')) {
-                        setCameraError('No camera device found. If you are on iOS, try using Safari or check permissions in Settings > Safari > Camera.');
-                      } else {
-                        setCameraError(err);
-                      }
-                    }}
-                  />
-                  {cameraError && (
-                    <div style={{ color: "red", marginTop: 8 }}>{cameraError}</div>
+                  {!showCamera ? (
+                    <div className="space-y-4">
+                      <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                        <div className="text-gray-500 mb-4">
+                          <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V6a1 1 0 00-1-1H5a1 1 0 00-1 1v1a1 1 0 001 1zm12 0h2a1 1 0 001-1V6a1 1 0 00-1-1h-2a1 1 0 00-1 1v1a1 1 0 001 1zM5 20h2a1 1 0 001-1v-1a1 1 0 00-1-1H5a1 1 0 00-1 1v1a1 1 0 001 1z" />
+                          </svg>
+                        </div>
+                        <p className="text-sm text-gray-600 mb-4">Click "Start Scan" to begin QR code scanning</p>
+                        <Button 
+                          onClick={() => setShowCamera(true)}
+                          className="bg-green-600 hover:bg-green-700 text-white"
+                        >
+                          Start Scan
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <QRCodeScanner
+                        onScan={(text) => {
+                          if (scanned) return;
+                          setScanned(true);
+                          setCameraError(null)
+                          setManualData(text); // Place scanned data in manual input
+                          setShowCamera(false); // Close camera
+                          setScanMode("manual"); // Switch to manual input for review/edit
+                        }}
+                        onError={(err) => {
+                          if (err.includes('denied')) {
+                            setCameraError('Camera access denied. Please allow camera permissions in your browser settings.');
+                          } else if (err.includes('not found')) {
+                            setCameraError('No camera device found. If you are on iOS, try using Safari or check permissions in Settings > Safari > Camera.');
+                          } else {
+                            setCameraError(err);
+                          }
+                        }}
+                      />
+                      {cameraError && (
+                        <div style={{ color: "red", marginTop: 8 }}>{cameraError}</div>
+                      )}
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          onClick={() => setShowCamera(false)}
+                          className="flex-1"
+                        >
+                          Close Camera
+                        </Button>
+                      </div>
+                      <div className="text-xs text-gray-500 mt-2">If you have issues on iOS, make sure you are using Safari and have granted camera permissions in Settings.</div>
+                    </div>
                   )}
-                  <div className="text-xs text-gray-500 mt-2">If you have issues on iOS, make sure you are using Safari and have granted camera permissions in Settings.</div>
                 </div>
               </div>
             </div>

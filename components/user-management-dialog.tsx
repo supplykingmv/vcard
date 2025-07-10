@@ -69,6 +69,9 @@ export function UserManagementDialog({ open, onOpenChange }: UserManagementDialo
       if (success) {
         setUsers(await getUsers())
         resetForm()
+        alert("User updated successfully!")
+      } else {
+        alert("Failed to update user. Please try again.")
       }
     } else {
       // Add new user
@@ -76,6 +79,7 @@ export function UserManagementDialog({ open, onOpenChange }: UserManagementDialo
       if (success) {
         setUsers(await getUsers())
         resetForm()
+        alert("User added successfully!")
       } else {
         alert("Failed to add user. Email might already exist.")
       }
@@ -128,7 +132,7 @@ export function UserManagementDialog({ open, onOpenChange }: UserManagementDialo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-lg sm:max-w-2xl lg:max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold text-gray-900 flex items-center gap-2">
             <Users className="h-5 w-5 text-green-600" />
@@ -140,7 +144,7 @@ export function UserManagementDialog({ open, onOpenChange }: UserManagementDialo
         <div className="space-y-6">
           {/* Add User Button */}
           {!showAddForm && (
-            <Button onClick={() => setShowAddForm(true)} className="bg-green-600 hover:bg-green-700 text-white">
+            <Button onClick={() => setShowAddForm(true)} className="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto">
               <Plus className="h-4 w-4 mr-2" />
               Add New User
             </Button>
@@ -154,7 +158,7 @@ export function UserManagementDialog({ open, onOpenChange }: UserManagementDialo
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="name">Full Name *</Label>
                       <Input
@@ -179,7 +183,7 @@ export function UserManagementDialog({ open, onOpenChange }: UserManagementDialo
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="password">Password {editingUser ? "(leave blank to keep current)" : "*"}</Label>
                       <Input
@@ -220,11 +224,11 @@ export function UserManagementDialog({ open, onOpenChange }: UserManagementDialo
                     <Label htmlFor="isActive">Active User</Label>
                   </div>
 
-                  <div className="flex gap-2">
-                    <Button type="submit" className="bg-green-600 hover:bg-green-700 text-white">
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Button type="submit" className="bg-green-600 hover:bg-green-700 text-white flex-1">
                       {editingUser ? "Update User" : "Add User"}
                     </Button>
-                    <Button type="button" variant="outline" onClick={resetForm}>
+                    <Button type="button" variant="outline" onClick={resetForm} className="flex-1">
                       Cancel
                     </Button>
                   </div>
@@ -240,29 +244,31 @@ export function UserManagementDialog({ open, onOpenChange }: UserManagementDialo
               {users.map((user) => (
                 <Card key={user.id} className="bg-white/80 backdrop-blur-sm border-white/20">
                   <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                       <div className="flex items-center space-x-4">
-                        <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center">
+                        <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center flex-shrink-0">
                           {user.role === "admin" ? (
                             <Shield className="h-5 w-5 text-white" />
                           ) : (
                             <User className="h-5 w-5 text-white" />
                           )}
                         </div>
-                        <div>
-                          <h4 className="font-semibold text-gray-900">{user.name}</h4>
-                          <p className="text-sm text-gray-600">{user.email}</p>
+                        <div className="min-w-0 flex-1">
+                          <h4 className="font-semibold text-gray-900 truncate">{user.name}</h4>
+                          <p className="text-sm text-gray-600 truncate">{user.email}</p>
                           <p className="text-xs text-gray-500">Added: {formatDate(user.dateAdded)}</p>
                         </div>
                       </div>
 
-                      <div className="flex items-center space-x-3">
-                        <Badge variant="outline" className={getRoleColor(user.role)}>
-                          {user.role}
-                        </Badge>
-                        <Badge variant="outline" className={getStatusColor(user.isActive)}>
-                          {user.isActive ? "Active" : "Inactive"}
-                        </Badge>
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                        <div className="flex flex-wrap gap-2">
+                          <Badge variant="outline" className={getRoleColor(user.role)}>
+                            {user.role}
+                          </Badge>
+                          <Badge variant="outline" className={getStatusColor(user.isActive)}>
+                            {user.isActive ? "Active" : "Inactive"}
+                          </Badge>
+                        </div>
 
                         <div className="flex space-x-1">
                           <Button

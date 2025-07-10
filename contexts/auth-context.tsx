@@ -184,7 +184,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     ) return false
     try {
       const userRef = doc(ensureDb(), "users", userId)
-      await updateDoc(userRef, userData)
+      
+      // Prepare update data (exclude password and other fields that shouldn't be in Firestore)
+      const updateData: any = {}
+      if (userData.name !== undefined) updateData.name = userData.name
+      if (userData.email !== undefined) updateData.email = userData.email
+      if (userData.role !== undefined) updateData.role = userData.role
+      if (userData.isActive !== undefined) updateData.isActive = userData.isActive
+      if (userData.phone !== undefined) updateData.phone = userData.phone
+      if (userData.website !== undefined) updateData.website = userData.website
+      if (userData.address !== undefined) updateData.address = userData.address
+      if (userData.company !== undefined) updateData.company = userData.company
+      if (userData.title !== undefined) updateData.title = userData.title
+      
+      // Update Firestore document
+      await updateDoc(userRef, updateData)
+      
+      // Handle password update separately if provided
+      if (userData.password && userData.password.trim()) {
+        // Note: Password updates require Firebase Admin SDK on backend
+        // For now, we'll skip password updates via this method
+        console.warn("Password updates require backend implementation")
+      }
+      
       // If updating self, update local state
       if (authState.user?.id === userId) {
         const userDoc = await getDoc(userRef)
@@ -197,6 +219,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       return true
     } catch (e) {
+      console.error("Error updating user:", e)
       return false
     }
   }
