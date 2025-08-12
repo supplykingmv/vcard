@@ -56,6 +56,12 @@ export function EditContactDialog({ open, onOpenChange, contact, onEditContact }
     }
   }, [contact])
 
+  const normalizeWebsite = (value: string): string => {
+    const trimmed = (value || "").trim()
+    if (!trimmed || trimmed === "-") return ""
+    return trimmed
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!contact) return
@@ -63,6 +69,7 @@ export function EditContactDialog({ open, onOpenChange, contact, onEditContact }
     onEditContact({
       ...contact,
       ...formData,
+      website: normalizeWebsite(formData.website),
       dateAdded: new Date(),
     })
   }
@@ -158,7 +165,7 @@ export function EditContactDialog({ open, onOpenChange, contact, onEditContact }
                 type="url"
                 value={formData.website}
                 onChange={(e) => handleInputChange("website", e.target.value)}
-                placeholder="https://visitmaldives.com"
+                placeholder="https://example.com or -"
               />
             </div>
           </div>

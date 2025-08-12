@@ -20,9 +20,15 @@ export function QRCodeDialog({ open, onOpenChange, contact }: QRCodeDialogProps)
   const [copied, setCopied] = useState(false)
   const [showSocialPopup, setShowSocialPopup] = useState(false)
 
+  const normalizedWebsite = (url?: string) => {
+    const v = (url || "").trim()
+    return v && v !== "-" ? v : ""
+  }
+
   useEffect(() => {
     if (contact) {
       // Create vCard format with all fields
+      const websiteValue = normalizedWebsite(contact.website)
       const vCard = `BEGIN:VCARD
 VERSION:3.0
 FN:${contact.name}
@@ -32,7 +38,7 @@ EMAIL:${contact.email}
 TEL:${contact.phone}
 ADR:;;${contact.address || ""};;;;
 NOTE:${contact.notes || ""}
-${contact.website ? `URL:${contact.website}` : ""}
+${websiteValue ? `URL:${websiteValue}` : ""}
 END:VCARD`
 
       // Generate QR code URL using a QR code API
@@ -82,7 +88,7 @@ END:VCARD`
       // Render BusinessCardExport into the container using React 18 createRoot
       const ReactDOM = await import("react-dom/client")
       const root = ReactDOM.createRoot(container)
-      root.render(<BusinessCardExport contact={contact} />)
+      root.render(<BusinessCardExport contact={{ ...contact, website: normalizedWebsite(contact.website) }} />)
 
       // Wait for render
       await new Promise((resolve) => setTimeout(resolve, 500))
@@ -135,7 +141,7 @@ END:VCARD`
       // Render BusinessCardExport into the container using React 18 createRoot
       const ReactDOM = await import("react-dom/client")
       const root = ReactDOM.createRoot(container)
-      root.render(<BusinessCardExport contact={contact} />)
+      root.render(<BusinessCardExport contact={{ ...contact, website: normalizedWebsite(contact.website) }} />)
 
       // Wait for render
       await new Promise((resolve) => setTimeout(resolve, 500))
@@ -222,7 +228,7 @@ END:VCARD`
             <div className="p-1.5 bg-white rounded shadow-sm border">
               {contact && (
                 <QRCodeCanvas
-                  value={`BEGIN:VCARD\nVERSION:3.0\nFN:${contact.name ? contact.name.trim().replace(/\s+/g, ' ') : ''}\nTEL:${contact.phone}\nEMAIL:${contact.email}\nADR:;;${contact.address || ''};;;;\nURL:${contact.website || ''}\nNOTE:${contact.notes || ''}\nEND:VCARD`}
+                  value={`BEGIN:VCARD\nVERSION:3.0\nFN:${contact.name ? contact.name.trim().replace(/\s+/g, ' ') : ''}\nTEL:${contact.phone}\nEMAIL:${contact.email}\nADR:;;${contact.address || ''};;;;\nURL:${normalizedWebsite(contact.website) || ''}\nNOTE:${contact.notes || ''}\nEND:VCARD`}
                   size={128}
                   level="M"
                   includeMargin={false}

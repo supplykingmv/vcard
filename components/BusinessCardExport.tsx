@@ -1,8 +1,15 @@
+"use client"
+
 import type { Contact } from "@/types/contact"
 import { QRCodeCanvas } from "qrcode.react"
 import { Mail, Phone, Building } from "lucide-react"
 
 export function BusinessCardExport({ contact }: { contact: Contact }) {
+  const normalizedWebsite = (url?: string) => {
+    const v = (url || "").trim()
+    return v && v !== "-" ? v : ""
+  }
+
   return (
     <div
       style={{
@@ -31,7 +38,7 @@ export function BusinessCardExport({ contact }: { contact: Contact }) {
         </div>
         <div style={{ marginLeft: 12, marginTop: 2 }}>
           <QRCodeCanvas
-            value={`BEGIN:VCARD\nVERSION:3.0\nFN:${contact.name}\nORG:${contact.company}\nTITLE:${contact.title}\nTEL:${contact.phone}\nEMAIL:${contact.email}\nADR:;;${contact.address || ""};;;;\nURL:${contact.website || ""}\nEND:VCARD`}
+            value={`BEGIN:VCARD\nVERSION:3.0\nFN:${contact.name}\nORG:${contact.company}\nTITLE:${contact.title}\nTEL:${contact.phone}\nEMAIL:${contact.email}\nADR:;;${contact.address || ""};;;;\nURL:${normalizedWebsite(contact.website) || ""}\nEND:VCARD`}
             size={56}
             level="M"
             includeMargin={false}

@@ -39,13 +39,21 @@ export function AddContactDialog({ open, onOpenChange, onAddContact }: AddContac
     address: "",
   })
 
+  const normalizeWebsite = (value: string): string => {
+    const trimmed = (value || "").trim()
+    if (!trimmed || trimmed === "-") return ""
+    return trimmed
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     // Allow submission even if fields are empty
-    onAddContact({
+    const submission = {
       ...formData,
+      website: normalizeWebsite(formData.website),
       company: formData.organization,
-    })
+    }
+    onAddContact(submission)
     setFormData({
       name: "",
       title: "",
@@ -174,7 +182,7 @@ export function AddContactDialog({ open, onOpenChange, onAddContact }: AddContac
                 type="url"
                 value={formData.website}
                 onChange={(e) => handleInputChange("website", e.target.value)}
-                placeholder="https://visitmaldives.com"
+                placeholder="https://example.com or -"
               />
             </div>
           </div>
