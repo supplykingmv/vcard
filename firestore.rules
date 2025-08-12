@@ -1,0 +1,49 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if true;  // WARNING: Only for testing!
+    }
+    // Users collection - manage user profiles and roles
+    match /users/{userId} {
+      // Users can read their own profile
+      allow read: if request.auth != null && request.auth.uid == userId;
+      
+      // Users can update their own profile (except role)
+      allow update: if request.auth != null && 
+        request.auth.uid == userId && 
+        !('role' in resource.data.diff(request.data).affectedKeys());
+      
+      // Only admins can create, delete users, or update roles
+      allow create, delete: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      
+      // Admins can update any user's role
+      allow update: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // Contacts collection - manage user's contacts
+    match /contacts/{contactId} {
+      // Users can only access their own contacts
+      allow read, write: if request.auth != null && 
+        resource.data.userId == request.auth.uid;
+      
+      // Allow creation with proper user ID
+      allow create: if request.auth != null && 
+        request.data.userId == request.auth.uid;
+    }
+    
+    // User sessions/activity (if you add this later)
+    match /sessions/{sessionId} {
+      allow read, write: if request.auth != null && 
+        resource.data.userId == request.auth.uid;
+    }
+    
+    // App settings (admin only)
+    match /settings/{settingId} {
+      allow read, write: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+  }
+}
