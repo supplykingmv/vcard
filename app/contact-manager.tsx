@@ -360,33 +360,60 @@ export default function ContactManager() {
           />
         )}
 
-        {/* Remove the stats/counters section */}
-        {/*
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 text-center shadow-lg border border-white/20">
-            <div className="text-2xl font-bold text-green-600">{contacts.length}</div>
-            <div className="text-sm text-gray-600">Total Contacts</div>
-          </div>
-          <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 text-center shadow-lg border border-white/20">
-            <div className="text-2xl font-bold text-green-600">
-              {contacts.filter((c) => c.category === "Work").length}
+        {/* Stats Counter Container */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 mb-6 shadow-lg border border-white/20">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {/* Total Contacts */}
+            <div className="text-center">
+              <div className="text-3xl font-bold text-green-600 mb-2">
+                {filteredAndSortedContacts.length}
+              </div>
+              <div className="text-sm font-medium text-gray-700">Total Contacts</div>
+              <div className="text-xs text-gray-500 mt-1">
+                {contacts.length} total in database
+              </div>
             </div>
-            <div className="text-sm text-gray-600">Work</div>
-          </div>
-          <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 text-center shadow-lg border border-white/20">
-            <div className="text-2xl font-bold text-green-600">
-              {contacts.filter((c) => c.category === "Business").length}
+
+            {/* Unique Organizations */}
+            <div className="text-center">
+              <div className="text-3xl font-bold text-blue-600 mb-2">
+                {new Set(filteredAndSortedContacts.map(c => c.company).filter(Boolean)).size}
+              </div>
+              <div className="text-sm font-medium text-gray-700">Organizations</div>
+              <div className="text-xs text-gray-500 mt-1">
+                Unique companies
+              </div>
             </div>
-            <div className="text-sm text-gray-600">Business</div>
-          </div>
-          <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 text-center shadow-lg border border-white/20">
-            <div className="text-2xl font-bold text-green-600">
-              {contacts.filter((c) => c.category === "Personal").length}
+
+            {/* Categories Breakdown */}
+            <div className="text-center">
+              <div className="text-3xl font-bold text-purple-600 mb-2">
+                {new Set(filteredAndSortedContacts.map(c => c.category)).size}
+              </div>
+              <div className="text-sm font-medium text-gray-700">Categories</div>
+              <div className="text-xs text-gray-500 mt-1">
+                Contact types
+              </div>
             </div>
-            <div className="text-sm text-gray-600">Personal</div>
+
+            {/* Last Updated */}
+            <div className="text-center">
+              <div className="text-3xl font-bold text-orange-600 mb-2">
+                {contacts.length > 0 ? 
+                  new Date(Math.max(...contacts.map(c => c.dateAdded.getTime()))).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                  : '--'
+                }
+              </div>
+              <div className="text-sm font-medium text-gray-700">Last Updated</div>
+              <div className="text-xs text-gray-500 mt-1">
+                {contacts.length > 0 ? 
+                  new Date(Math.max(...contacts.map(c => c.dateAdded.getTime()))).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+                  : '--'
+                }
+              </div>
+            </div>
           </div>
         </div>
-        */}
 
         {/* Contacts View */}
         {renderContactsView()}
